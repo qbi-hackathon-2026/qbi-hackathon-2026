@@ -1,0 +1,36 @@
+name: CI
+
+# Read-only checks. Runs on PRs (including from forks) and on pushes to main.
+# This workflow has NO access to secrets and only read permission on the repo,
+# so it is safe to run on untrusted pull requests. Deployment lives in a
+# separate workflow that runs only on push to main (after a maintainer merges).
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Backend tests (no network)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: trimprot/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run tests (excluding network-dependent tests)
+        run: python -m pytest -m "not network" -q

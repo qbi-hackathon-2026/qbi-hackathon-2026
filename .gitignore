@@ -1,15 +1,44 @@
-node_modules
-.next
-out
-.env.local
-.env*.local
-.DS_Store
-*.tsbuildinfo
-next-env.d.ts
-
+# ── Python ───────────────────────────────────────────────────────────────
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.eggs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# ── Secrets / credentials (never commit) ─────────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+# GCP service-account keys — should not exist (we use Workload Identity Federation),
+# but ignore defensively so one can never be committed by accident.
+gcp-*.json
+service-account*.json
+*-credentials.json
+
+# ── TrimProt pipeline outputs (regenerated per run) ──────────────────────
+trimprot/backend/output/
 trimprot/backend/app/server.log
 trimprot/backend/app/*.cif
 trimprot/backend/app/*.pdb
-trimprot/backend/output/
+
+# ── Editor / agent / OS local state ──────────────────────────────────────
+.claude/
+CLAUDE.md
+trimprot/HOSTING.md
+.vscode/
+.idea/
+.DS_Store
+
+# ── Legacy Next.js scaffold cruft (pre-rewrite; not part of the project) ──
+node_modules
+.next
+out
+*.tsbuildinfo
+next-env.d.ts
