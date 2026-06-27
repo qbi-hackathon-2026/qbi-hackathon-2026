@@ -16,14 +16,7 @@ def search_proteins(query: str, limit: int = 12) -> list[dict]:
     if ACCESSION_RE.match(query):
         try:
             entry = fetch_entry(query.upper())
-            return [{
-                "accession": entry["primaryAccession"],
-                "id": entry["uniProtkbId"],
-                "protein_name": entry["proteinDescription"]["recommendedName"]["fullName"]["value"]
-                if "recommendedName" in entry["proteinDescription"] else entry["uniProtkbId"],
-                "organism": entry["organism"]["scientificName"],
-                "is_human": entry["organism"]["taxonId"] == 9606,
-            }]
+            return [_candidate_from_entry(entry)]
         except requests.HTTPError:
             pass  # fall through to text search
 
@@ -31,7 +24,7 @@ def search_proteins(query: str, limit: int = 12) -> list[dict]:
         f"{UNIPROT_REST}/search",
         params={
             "query": f'(gene:{query} OR protein_name:"{query}") AND reviewed:true',
-            "fields": "accession,id,protein_name,organism_name,organism_id",
+            "fields": "accession,id,protein_name,gene_names,organism_name,organism_id,length",
             "format": "json",
             "size": limit * 3,
         },
@@ -40,20 +33,44 @@ def search_proteins(query: str, limit: int = 12) -> list[dict]:
     r.raise_for_status()
     results = r.json().get("results", [])
 
-    candidates = []
-    for item in results:
-        protein_name = item.get("proteinDescription", {}).get("recommendedName", {}).get("fullName", {}).get("value", item["uniProtkbId"])
-        candidates.append({
-            "accession": item["primaryAccession"],
-            "id": item["uniProtkbId"],
-            "protein_name": protein_name,
-            "organism": item.get("organism", {}).get("scientificName", ""),
-            "is_human": item.get("organism", {}).get("taxonId") == 9606,
-        })
+    candidates = [_candidate_from_entry(item) for item in results]
 
     q_upper = query.upper()
     candidates.sort(key=lambda c: (not c["is_human"], not c["id"].upper().startswith(q_upper + "_")))
     return candidates[:limit]
+
+
+def _candidate_from_entry(entry: dict) -> dict:
+    """Shape a single UniProt entry (search hit or full fetch) into a search candidate."""
+    desc = entry.get("proteinDescription", {})
+    protein_name = desc.get("recommendedName", {}).get("fullName", {}).get("value")
+    if not protein_name:
+        submitted = desc.get("submissionNames") or desc.get("submittedNames") or []
+        if submitted:
+            protein_name = submitted[0].get("fullName", {}).get("value")
+    if not protein_name:
+        protein_name = entry["uniProtkbId"]
+
+    gene_names: list[str] = []
+    for gene in entry.get("genes", []):
+        name = gene.get("geneName", {}).get("value")
+        if name and name not in gene_names:
+            gene_names.append(name)
+        for syn in gene.get("synonyms", []):
+            value = syn.get("value")
+            if value and value not in gene_names:
+                gene_names.append(value)
+
+    organism = entry.get("organism", {})
+    return {
+        "accession": entry["primaryAccession"],
+        "id": entry["uniProtkbId"],
+        "protein_name": protein_name,
+        "gene_names": gene_names,
+        "organism": organism.get("scientificName", ""),
+        "is_human": organism.get("taxonId") == 9606,
+        "length": entry.get("sequence", {}).get("length", 0),
+    }
 
 FEATURE_TYPES_OF_INTEREST = {
     "Signal peptide",
