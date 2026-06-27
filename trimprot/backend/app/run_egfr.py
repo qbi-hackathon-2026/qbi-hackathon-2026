@@ -1,12 +1,16 @@
-"""End-to-end TrimProt pipeline for the EGFR target.
+"""End-to-end TrimProt pipeline.
 
-The agent: looks up the target, decides whether trimming is needed (it is,
-EGFR has a transmembrane region), picks and ranks PDB structures, trims to
-the extracellular domain, annotates avoid-residues and hotspots, and emits
-a structured summary + downloadable trimmed structure.
+Orchestrates UniProt feature extraction → PDB structure search/ranking →
+structure trimming → avoid-residue/hotspot annotation → summary output.
+
+When no crystal structure with adequate ECD coverage is found the pipeline
+falls back to the AlphaFold model (fetch_alphafold.py), skips SIFTS, and
+applies pLDDT-based masking in place of missing-residue avoidance.
 """
 import json
 import os
+import shutil
+from pathlib import Path
 
 import uniprot
 import pdb_search
@@ -14,15 +18,21 @@ import sifts
 import trim
 import annotate
 import summary as summary_mod
+import fetch_alphafold as af_mod
 import gemmi
 
 ACCESSION = "P00533"
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
 
+# Fall back to AlphaFold when the best-ranked crystal structure covers less
+# than this fraction of the extracellular domain.
+MIN_ECD_COVERAGE = 0.5
+
 
 def run(accession: str = ACCESSION) -> dict:
     os.makedirs(OUT_DIR, exist_ok=True)
 
+    # ── Stage 1: UniProt feature extraction ──────────────────────────────────
     entry = uniprot.fetch_entry(accession)
     features = uniprot.extract_features(entry)
     needs_trim, trim_reason = uniprot.needs_trimming(features)
@@ -31,13 +41,140 @@ def run(accession: str = ACCESSION) -> dict:
         raise ValueError("Target has a transmembrane region but no annotated extracellular domain")
     domain_start, domain_end = (domain["start"], domain["end"]) if domain else (1, features["length"])
 
+    isoform_note = (
+        f"Canonical sequence {entry['uniProtkbId']} ({features['length']} aa); "
+        "no isoform selection needed (single reviewed canonical isoform used)."
+    )
+
+    # ── Stage 2: PDB structure search and ranking ─────────────────────────────
     entity_ids = pdb_search.find_entity_ids(accession)
     entry_ids = sorted({eid.split("_")[0] for eid in entity_ids})
     details = pdb_search.fetch_entry_details(entry_ids)
     domain_length = domain_end - domain_start + 1
     ranked = pdb_search.rank_structures(details, accession, domain_length)
-    if not ranked:
-        raise ValueError(f"No PDB structures found for {accession}")
+
+    use_alphafold = (not ranked) or (ranked[0]["ecd_coverage"] < MIN_ECD_COVERAGE)
+
+    # ── Stage 3a: AlphaFold fallback path ────────────────────────────────────
+    if use_alphafold:
+        af_cache = Path(OUT_DIR) / "alphafold_cache"
+        af_result = af_mod.get_alphafold_structure(
+            accession,
+            ecd_ranges=[(domain_start, domain_end)],
+            cache_dir=af_cache,
+        )
+        chain_id = af_result.chain_id  # always "A"
+
+        full_pdb_path = os.path.join(OUT_DIR, f"AF-{accession}_full.pdb")
+        af_result.structure.write_pdb(full_pdb_path)
+
+        # Copy the cached CIF into output so /api/files/ can serve it
+        cif_src = af_cache / f"AF-{accession}-F1-model_v{af_result.version}.cif"
+        cif_dest = os.path.join(OUT_DIR, f"AF-{accession}_full.cif")
+        shutil.copy2(str(cif_src), cif_dest)
+
+        trim_result = trim.trim_alphafold_to_domain(
+            af_result.structure, chain_id, domain_start, domain_end
+        )
+        trimmed_path = os.path.join(OUT_DIR, f"AF-{accession}_ECD_trimmed.pdb")
+        trim.write_structure(trim_result["structure"], trimmed_path)
+
+        # AF auth_seq_id == UniProt position — identity mapping, no SIFTS needed
+        u2a = {i: i for i in range(domain_start, domain_end + 1)}
+
+        # pLDDT ≤ 50 residues are the AF equivalent of missing electron density
+        plddt_unobs = {
+            e.auth_seq_id for e in af_result.avoid_contributions
+            if "unobserved" in e.reason
+        }
+
+        avoid = annotate.avoid_residues(features, u2a, domain_start, domain_end, plddt_unobs)
+
+        # Low-pLDDT (50 < pLDDT < 70) as a distinct avoid category
+        avoid["low_plddt"] = [
+            {
+                "unp_position": e.auth_seq_id,
+                "auth_seq_num": e.auth_seq_id,
+                "plddt": round(e.plddt, 1),
+                "reason": e.reason,
+            }
+            for e in af_result.avoid_contributions
+            if "low_plddt" in e.reason
+        ]
+
+        avoid_auth_nums = {
+            e["auth_seq_num"]
+            for cat in ("glycosylation", "disulfide_cysteines", "other_ptms", "low_plddt")
+            for e in avoid[cat]
+            if e["auth_seq_num"] is not None
+        }
+        avoid_auth_nums |= plddt_unobs
+
+        auth_to_unp = {v: k for k, v in u2a.items()}
+
+        # No partner chains in an AF monomer — always use surface-exposure fallback
+        hotspots_auth = annotate.surface_exposed_hotspots(
+            trim_result["structure"], chain_id, avoid_auth_nums
+        )
+        hotspots_auth -= avoid_auth_nums
+        hotspot_source = (
+            f"inferred surface-exposed residues (AlphaFold model v{af_result.version}; "
+            f"pLDDT masking applied, mean ECD pLDDT={af_result.ecd_mean_plddt:.1f})"
+        )
+        hotspots_unp = sorted(auth_to_unp[a] for a in hotspots_auth if a in auth_to_unp)
+
+        isoform_note = (
+            f"Canonical sequence {entry['uniProtkbId']} ({features['length']} aa); "
+            "AlphaFold model used (no crystal structure with adequate ECD coverage found)."
+        )
+
+        result_summary = summary_mod.build_summary(
+            accession=accession,
+            uniprot_id=entry["uniProtkbId"],
+            isoform_note=isoform_note,
+            domain_start=domain_start,
+            domain_end=domain_end,
+            needs_trim=needs_trim,
+            trim_reason=trim_reason,
+            chosen_pdb=None,
+            ranked_candidates=ranked,
+            trim_result=trim_result,
+            avoid=avoid,
+            hotspots_unp=hotspots_unp,
+            hotspot_source=hotspot_source,
+            partner_chains=[],
+            alphafold_fields=af_result.summary_fields(),
+        )
+
+        avoid_glyco_auth     = sorted({e["auth_seq_num"] for e in avoid["glycosylation"]      if e["auth_seq_num"] is not None})
+        avoid_disulfide_auth = sorted({e["auth_seq_num"] for e in avoid["disulfide_cysteines"] if e["auth_seq_num"] is not None})
+        avoid_ptm_auth       = sorted({e["auth_seq_num"] for e in avoid["other_ptms"]          if e["auth_seq_num"] is not None})
+        avoid_low_plddt_auth = sorted({e["auth_seq_num"] for e in avoid["low_plddt"]           if e["auth_seq_num"] is not None})
+
+        result_summary["viewer"] = {
+            "pdb_id": f"AF-{accession}",
+            "auth_chain": chain_id,
+            "partner_chains": [],
+            "original_file": f"AF-{accession}_full.pdb",
+            "original_cif_file": f"AF-{accession}_full.cif",
+            "trimmed_file": f"AF-{accession}_ECD_trimmed.pdb",
+            "hotspot_auth_residues": sorted(hotspots_auth),
+            "avoid_glycosylation_auth_residues": avoid_glyco_auth,
+            "avoid_disulfide_auth_residues": avoid_disulfide_auth,
+            "avoid_other_ptm_auth_residues": avoid_ptm_auth,
+            "avoid_low_plddt_auth_residues": avoid_low_plddt_auth,
+            "missing_auth_residues_note": "pLDDT ≤ 50 residues treated as unobserved",
+        }
+
+        summary_path = os.path.join(OUT_DIR, f"AF-{accession}_summary.json")
+        with open(summary_path, "w") as f:
+            json.dump(result_summary, f, indent=2)
+
+        print(f"Wrote trimmed structure (AlphaFold): {trimmed_path}")
+        print(f"Wrote summary: {summary_path}")
+        return result_summary
+
+    # ── Stage 3b: Crystal structure path ─────────────────────────────────────
     chosen = ranked[0]
     pdb_id = chosen["pdb_id"]
 
@@ -82,11 +219,6 @@ def run(accession: str = ACCESSION) -> dict:
     hotspots_auth -= avoid_auth_nums
     hotspots_unp = sorted(auth_to_unp[a] for a in hotspots_auth if a in auth_to_unp)
 
-    isoform_note = (
-        f"Canonical sequence {entry['uniProtkbId']} ({features['length']} aa); "
-        "no isoform selection needed (single reviewed canonical isoform used)."
-    )
-
     result_summary = summary_mod.build_summary(
         accession=accession,
         uniprot_id=entry["uniProtkbId"],
@@ -104,9 +236,9 @@ def run(accession: str = ACCESSION) -> dict:
         partner_chains=partner_chains,
     )
 
-    avoid_glyco_auth = sorted({e["auth_seq_num"] for e in avoid["glycosylation"] if e["auth_seq_num"] is not None})
+    avoid_glyco_auth     = sorted({e["auth_seq_num"] for e in avoid["glycosylation"]      if e["auth_seq_num"] is not None})
     avoid_disulfide_auth = sorted({e["auth_seq_num"] for e in avoid["disulfide_cysteines"] if e["auth_seq_num"] is not None})
-    avoid_ptm_auth = sorted({e["auth_seq_num"] for e in avoid["other_ptms"] if e["auth_seq_num"] is not None})
+    avoid_ptm_auth       = sorted({e["auth_seq_num"] for e in avoid["other_ptms"]          if e["auth_seq_num"] is not None})
     result_summary["viewer"] = {
         "pdb_id": pdb_id,
         "auth_chain": auth_chain,
