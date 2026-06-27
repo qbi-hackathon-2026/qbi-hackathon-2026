@@ -48,6 +48,8 @@ def find_entity_ids(accession: str) -> list[str]:
     }
     r = requests.post(RCSB_SEARCH, json=query, timeout=30)
     r.raise_for_status()
+    if r.status_code == 204 or not r.content:
+        return []
     hits = r.json().get("result_set", [])
     return [h["identifier"] for h in hits]
 
