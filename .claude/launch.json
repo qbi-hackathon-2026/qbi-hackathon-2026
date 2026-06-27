@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "trimprot",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "api:app", "--host", "127.0.0.1", "--port", "8000"],
+      "cwd": "trimprot/backend/app",
+      "port": 8000
+    }
+  ]
+}

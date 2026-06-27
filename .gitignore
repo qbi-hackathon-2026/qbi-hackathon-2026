@@ -6,3 +6,10 @@ out
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+
+__pycache__/
+*.pyc
+trimprot/backend/app/server.log
+trimprot/backend/app/*.cif
+trimprot/backend/app/*.pdb
+trimprot/backend/output/

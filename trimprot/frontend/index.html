@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>TrimProt — EGFR Target-Prep Assistant</title>
+<script src="https://cdn.jsdelivr.net/npm/ngl@2.0.1/dist/ngl.js"></script>
+<style>
+  :root {
+    --bg: #0f1116; --panel: #171a21; --border: #2a2e38; --text: #e6e8ee;
+    --muted: #9aa1ad; --accent: #4ea1ff; --avoid: #ff5c5c; --hotspot: #36d399;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+  header { padding: 16px 24px; border-bottom: 1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  header h1 { font-size: 18px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  #status { padding: 10px 24px; color: var(--muted); font-size: 13px; }
+  main { display: flex; gap: 12px; padding: 0 24px 24px; }
+  .col { flex: 1; min-width: 0; }
+  .viewer-row { display: flex; gap: 12px; }
+  .viewer-card { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .viewer-card .title { padding: 8px 12px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;}
+  .viewer-card .stage { width: 100%; height: 420px; }
+  .legend { display:flex; gap:16px; padding: 8px 12px; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; }
+  .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
+  .panel h3 { font-size: 12px; margin: 14px 0 4px; color: var(--text); }
+  .kv { display:grid; grid-template-columns: 160px 1fr; gap: 4px 12px; font-size: 13px; }
+  .kv div.k { color: var(--muted); }
+  .pill { display:inline-block; background:#1f232c; border:1px solid var(--border); border-radius:999px; padding:2px 8px; font-size:12px; margin: 2px; }
+  .pill.avoid { border-color: var(--avoid); color: var(--avoid); }
+  .pill.hotspot { border-color: var(--hotspot); color: var(--hotspot); }
+  a.btn, button.btn { background: var(--accent); color: #07101f; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; text-decoration: none; cursor: pointer; font-weight: 600; }
+  .reasoning { font-size: 13px; line-height: 1.5; color: var(--text); }
+  #sidebar { width: 380px; flex-shrink: 0; }
+  .resgrid { max-height: 140px; overflow-y: auto; }
+  #search-wrap { position: relative; width: 360px; }
+  #search-input { width: 100%; background: var(--panel); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 8px 10px; font-size: 13px; }
+  #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 6px; margin-top: 4px; max-height: 280px; overflow-y: auto; z-index: 10; display: none; }
+  #suggestions .item { padding: 8px 10px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; gap: 8px; }
+  #suggestions .item:hover { background: #1f232c; }
+  #suggestions .item .name { color: var(--text); }
+  #suggestions .item .tag { font-size: 11px; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); flex-shrink: 0; }
+  #suggestions .item .tag.human { color: var(--hotspot); border-color: var(--hotspot); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>TrimProt</h1>
+    <div class="sub">Target-prep assistant for de novo binder design</div>
+  </div>
+  <div id="search-wrap">
+    <input id="search-input" type="text" placeholder="Protein, gene name, or UniProt accession (e.g. EGFR)" autocomplete="off">
+    <div id="suggestions"></div>
+  </div>
+  <button class="btn" id="run-btn">Run pipeline</button>
+</header>
+<div id="status">Idle.</div>
+
+<main>
+  <div class="col">
+    <div class="viewer-row">
+      <div class="viewer-card">
+        <div class="title"><span>Original structure</span><span id="orig-label">—</span></div>
+        <div class="stage" id="stage-orig"></div>
+      </div>
+      <div class="viewer-card">
+        <div class="title"><span>Trimmed extracellular domain</span><span id="trim-label">—</span></div>
+        <div class="stage" id="stage-trim"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#cfd4dc"></span>Backbone</span>
+      <span><span class="dot" style="background:var(--avoid)"></span>Avoid (glyco / disulfide / missing)</span>
+      <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
+      <span><span class="dot" style="background:#7a5cff"></span>Bound partner chain</span>
+    </div>
+
+    <div class="panel">
+      <h2>Structured summary</h2>
+      <div id="summary-body" class="reasoning">Run the pipeline to generate a summary.</div>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div class="panel">
+      <h2>Downloads</h2>
+      <div id="downloads">—</div>
+    </div>
+    <div class="panel">
+      <h2>Avoid-residue regions</h2>
+      <div id="avoid-list" class="resgrid">—</div>
+    </div>
+    <div class="panel">
+      <h2>Candidate hotspots</h2>
+      <div id="hotspot-list" class="resgrid">—</div>
+    </div>
+  </div>
+</main>
+
+<script>
+// Allow this file to be opened directly (file://) and still reach the API server,
+// since relative paths like "/api/run" can't be resolved against a file:// origin.
+const API_BASE = window.location.protocol === 'http:' || window.location.protocol === 'https:'
+  ? ''
+  : 'http://127.0.0.1:8000';
+
+const statusEl = document.getElementById('status');
+let stageOrig, stageTrim;
+
+function setStatus(msg) { statusEl.textContent = msg; }
+
+function colorSchemeFor(authChain, avoidSet, hotspotSet, partnerChains) {
+  return NGL.ColormakerRegistry.addSelectionScheme([
+    [ "purple", partnerChains.map(c => `:${c}`).join(' or ') || "none" ],
+    [ "red", avoidSet.size ? `(${[...avoidSet].join(', ')}) and :${authChain}` : "none" ],
+    [ "green", hotspotSet.size ? `(${[...hotspotSet].join(', ')}) and :${authChain}` : "none" ],
+    [ "lightgrey", "*" ],
+  ]);
+}
+
+async function loadStructure(stage, fileUrl, ext, authChain, avoidSet, hotspotSet, partnerChains) {
+  stage.removeAllComponents();
+  const comp = await stage.loadFile(fileUrl, { ext });
+  const scheme = colorSchemeFor(authChain, avoidSet, hotspotSet, partnerChains);
+  comp.addRepresentation('cartoon', { color: scheme });
+  comp.addRepresentation('ball+stick', {
+    sele: avoidSet.size ? `(${[...avoidSet].join(', ')}) and :${authChain}` : 'none',
+    color: 'red',
+  });
+  comp.addRepresentation('ball+stick', {
+    sele: hotspotSet.size ? `(${[...hotspotSet].join(', ')}) and :${authChain}` : 'none',
+    color: 'green',
+  });
+  stage.handleResize();
+  stage.autoView();
+}
+
+function renderSummary(data) {
+  const t = data.target, ed = data.extracellular_domain, ss = data.structure_selection,
+        tr = data.trimming, av = data.avoid_residues, hs = data.hotspots, viewer = data.viewer;
+
+  document.getElementById('orig-label').textContent = viewer.pdb_id + ' (full)';
+  document.getElementById('trim-label').textContent = viewer.pdb_id + ' (ECD only)';
+
+  document.getElementById('summary-body').innerHTML = `
+    <div class="kv">
+      <div class="k">UniProt</div><div>${t.uniprot_accession} (${t.uniprot_id})</div>
+      <div class="k">Isoform</div><div>${t.isoform}</div>
+      <div class="k">ECD boundaries</div><div>residues ${ed.start}–${ed.end} (UniProt numbering)</div>
+      <div class="k">Trim decision</div><div>${ed.trimming_decision.trimmed ? 'Trimmed' : 'Not trimmed'} — ${ed.trimming_decision.reason}</div>
+      <div class="k">Chosen PDB</div><div>${ss.chosen_pdb_id} (${ss.resolution} &Aring;, chain ${viewer.auth_chain})</div>
+      <div class="k">Why this PDB</div><div>${ss.reason}</div>
+      <div class="k">Residues trimmed</div><div>${tr.residues_trimmed_away} of ${tr.residues_in_original_chain} chain residues removed; ${tr.residues_kept} kept</div>
+      <div class="k">Missing/unresolved</div><div>${tr.missing_unresolved_label_positions.length} positions unresolved in this structure</div>
+      <div class="k">Avoid-residue counts</div><div>${av.counts.glycosylation} glyco · ${av.counts.disulfide_cysteines} disulfide · ${av.counts.other_ptms} other PTM · ${av.counts.missing_unresolved} missing</div>
+      <div class="k">Hotspot source</div><div>${hs.source}</div>
+      <div class="k">Hotspot count</div><div>${hs.count} candidate residues</div>
+    </div>
+  `;
+
+  document.getElementById('downloads').innerHTML = `
+    <a class="btn" href="${API_BASE}/api/files/${viewer.trimmed_file}" download>Download trimmed PDB</a>
+    <div style="margin-top:8px;"><a href="${API_BASE}/api/files/${viewer.original_cif_file}" download style="color:var(--muted); font-size:12px;">original CIF</a></div>
+  `;
+
+  document.getElementById('avoid-list').innerHTML =
+    av.glycosylation_sites.map(s => `<span class="pill avoid" title="glycosylation">N${s.unp_position}</span>`).join('') +
+    av.disulfide_cysteines.map(s => `<span class="pill avoid" title="disulfide cysteine">C${s.unp_position}</span>`).join('') +
+    av.other_ptms.map(s => `<span class="pill avoid" title="${s.ptm_type}: ${s.description}">${s.ptm_type[0]}${s.unp_position}</span>`).join('') +
+    av.missing_unresolved.map(s => `<span class="pill avoid" title="missing/unresolved">?${s.unp_position}</span>`).join('');
+
+  document.getElementById('hotspot-list').innerHTML =
+    hs.candidate_residues_unp.map(p => `<span class="pill hotspot">${p}</span>`).join('') || 'None identified';
+}
+
+let selectedAccession = 'P00533';
+
+async function runPipeline() {
+  setStatus(`Running pipeline for ${selectedAccession} (UniProt lookup, PDB ranking, trimming, annotation)…`);
+  document.getElementById('run-btn').disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/api/run?accession=${encodeURIComponent(selectedAccession)}`);
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    renderSummary(data);
+
+    const v = data.viewer;
+    const avoidAuth = new Set([...v.avoid_glycosylation_auth_residues, ...v.avoid_disulfide_auth_residues, ...v.avoid_other_ptm_auth_residues]);
+    const hotspotAuth = new Set(v.hotspot_auth_residues);
+
+    await loadStructure(stageOrig, `${API_BASE}/api/files/${v.original_file}`, 'pdb', v.auth_chain, avoidAuth, hotspotAuth, v.partner_chains);
+    await loadStructure(stageTrim, `${API_BASE}/api/files/${v.trimmed_file}`, 'pdb', v.auth_chain, avoidAuth, hotspotAuth, []);
+
+    setStatus(`Done. Selected ${v.pdb_id}, chain ${v.auth_chain}.`);
+  } catch (e) {
+    setStatus('Error: ' + e.message);
+  } finally {
+    document.getElementById('run-btn').disabled = false;
+  }
+}
+
+let searchDebounce = null;
+
+async function doSearch(q) {
+  const box = document.getElementById('suggestions');
+  if (!q || q.trim().length < 2) { box.style.display = 'none'; return; }
+  try {
+    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(q.trim())}`);
+    if (!res.ok) { box.style.display = 'none'; return; }
+    const candidates = await res.json();
+    if (!candidates.length) { box.style.display = 'none'; return; }
+    box.innerHTML = candidates.map(c => `
+      <div class="item" data-accession="${c.accession}" data-id="${c.id}">
+        <span class="name">${c.protein_name} <span style="color:var(--muted)">(${c.id})</span></span>
+        <span class="tag ${c.is_human ? 'human' : ''}">${c.organism}</span>
+      </div>
+    `).join('');
+    box.style.display = 'block';
+    box.querySelectorAll('.item').forEach(el => {
+      el.addEventListener('click', () => {
+        selectedAccession = el.dataset.accession;
+        document.getElementById('search-input').value = el.dataset.id;
+        box.style.display = 'none';
+        runPipeline();
+      });
+    });
+  } catch {
+    box.style.display = 'none';
+  }
+}
+
+window.addEventListener('load', () => {
+  stageOrig = new NGL.Stage('stage-orig', { backgroundColor: '#171a21' });
+  stageTrim = new NGL.Stage('stage-trim', { backgroundColor: '#171a21' });
+  window.addEventListener('resize', () => { stageOrig.handleResize(); stageTrim.handleResize(); });
+  document.getElementById('run-btn').addEventListener('click', runPipeline);
+
+  const input = document.getElementById('search-input');
+  input.value = 'EGFR';
+  input.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => doSearch(input.value), 300);
+  });
+  document.addEventListener('click', (e) => {
+    if (!document.getElementById('search-wrap').contains(e.target)) {
+      document.getElementById('suggestions').style.display = 'none';
+    }
+  });
+
+  runPipeline();
+});
+</script>
+</body>
+</html>
