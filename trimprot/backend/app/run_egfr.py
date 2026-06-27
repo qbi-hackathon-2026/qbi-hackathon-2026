@@ -236,7 +236,12 @@ def run(accession: str = ACCESSION) -> dict:
         partner_chains=partner_chains,
     )
 
-    avoid_glyco_auth     = sorted({e["auth_seq_num"] for e in avoid["glycosylation"]      if e["auth_seq_num"] is not None})
+    # Surface protein display fields (name, gene symbols, organism, length) on the
+    # summary so the frontend title block renders on every path (search-select,
+    # reload, direct) without depending on the transient search-result object.
+    result_summary["target"].update(uniprot._candidate_from_entry(entry))
+
+    avoid_glyco_auth = sorted({e["auth_seq_num"] for e in avoid["glycosylation"] if e["auth_seq_num"] is not None})
     avoid_disulfide_auth = sorted({e["auth_seq_num"] for e in avoid["disulfide_cysteines"] if e["auth_seq_num"] is not None})
     avoid_ptm_auth       = sorted({e["auth_seq_num"] for e in avoid["other_ptms"]          if e["auth_seq_num"] is not None})
     result_summary["viewer"] = {
