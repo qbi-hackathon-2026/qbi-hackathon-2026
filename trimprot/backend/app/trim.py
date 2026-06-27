@@ -79,6 +79,48 @@ def trim_to_domain(
     }
 
 
+def trim_alphafold_to_domain(
+    structure: gemmi.Structure,
+    chain_id: str,
+    domain_start: int,
+    domain_end: int,
+) -> dict:
+    """Trim an AlphaFold structure to ECD bounds.
+
+    AlphaFold auth_seq_id == UniProt position, so no SIFTS mapping is needed —
+    we filter directly by residue number within [domain_start, domain_end].
+    """
+    trimmed = gemmi.Structure()
+    trimmed.name = "AF_ECD_trim"
+    model = gemmi.Model("1")
+    new_chain = gemmi.Chain(chain_id)
+
+    src_chain = structure[0][chain_id]
+    n_total = n_kept = 0
+    for res in src_chain:
+        if res.het_flag == "H" or res.name == "HOH":
+            continue
+        n_total += 1
+        if domain_start <= res.seqid.num <= domain_end:
+            new_chain.add_residue(res)
+            n_kept += 1
+
+    model.add_chain(new_chain)
+    trimmed.add_model(model)
+    trimmed.setup_entities()
+
+    return {
+        "structure": trimmed,
+        "auth_chain": chain_id,
+        "struct_asym": chain_id,
+        "unp_range": (domain_start, domain_end),
+        "n_residues_in_original_chain": n_total,
+        "n_residues_kept": n_kept,
+        "n_residues_trimmed_away": n_total - n_kept,
+        "missing_label_seq_in_range": [],  # pLDDT-unobserved handled separately
+    }
+
+
 def write_structure(structure: gemmi.Structure, out_path: str):
     if out_path.endswith(".pdb"):
         structure.write_pdb(out_path)

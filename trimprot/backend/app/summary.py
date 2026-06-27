@@ -1,4 +1,7 @@
 """Assemble the structured design-prep summary described in the TrimProt spec."""
+from __future__ import annotations
+
+from typing import Optional
 
 
 def compact_ranges(positions: list[int]) -> str:
@@ -35,7 +38,7 @@ def build_summary(
     domain_end: int,
     needs_trim: bool,
     trim_reason: str,
-    chosen_pdb: dict,
+    chosen_pdb: Optional[dict],
     ranked_candidates: list[dict],
     trim_result: dict,
     avoid: dict,
@@ -45,24 +48,13 @@ def build_summary(
     other_interface_contacts_unp: list[int] | None = None,
     numbering_mismatches: dict | None = None,
     verbose: bool = False,
+    alphafold_fields: Optional[dict] = None,
 ) -> dict:
     other_interface_contacts_unp = other_interface_contacts_unp or []
     numbering_mismatches = numbering_mismatches or {}
-    return {
-        "target": {
-            "uniprot_accession": accession,
-            "uniprot_id": uniprot_id,
-            "isoform": isoform_note,
-        },
-        "extracellular_domain": {
-            "start": domain_start,
-            "end": domain_end,
-            "trimming_decision": {
-                "trimmed": needs_trim,
-                "reason": trim_reason,
-            },
-        },
-        "structure_selection": {
+
+    if chosen_pdb is not None:
+        structure_selection = {
             "chosen_pdb_id": chosen_pdb["pdb_id"],
             "resolution": chosen_pdb["resolution"],
             "ecd_coverage": chosen_pdb["ecd_coverage"],
@@ -76,7 +68,60 @@ def build_summary(
                    if chosen_pdb["has_partner"] else ".")
             ),
             "top_alternatives": ranked_candidates[1:4],
+        }
+    else:
+        n = len(ranked_candidates)
+        structure_selection = {
+            "chosen_pdb_id": None,
+            "resolution": None,
+            "ecd_coverage": None,
+            "has_known_partner": False,
+            "rank_score": None,
+            "reason": (
+                f"No crystal structure with adequate ECD coverage found "
+                f"({n} candidate{'s' if n != 1 else ''} examined); "
+                "falling back to AlphaFold prediction."
+            ),
+            "top_alternatives": ranked_candidates[:4],
+        }
+
+    if verbose:
+        avoid_section: dict = {
+            "glycosylation_sites": avoid["glycosylation"],
+            "disulfide_cysteines": avoid["disulfide_cysteines"],
+            "other_ptms": avoid["other_ptms"],
+            "missing_unresolved": avoid["missing_unresolved"],
+        }
+        if "low_plddt" in avoid:
+            avoid_section["low_plddt"] = avoid["low_plddt"]
+        avoid_section["counts"] = {k: len(v) for k, v in avoid.items()}
+    else:
+        avoid_section = {
+            "glycosylation_sites": _condense(avoid["glycosylation"]),
+            "disulfide_cysteines": _condense(avoid["disulfide_cysteines"]),
+            "other_ptms": _condense(avoid["other_ptms"]),
+            "missing_unresolved": _condense(avoid["missing_unresolved"]),
+            "counts": {k: len(v) for k, v in avoid.items()},
+            "note": "Per-residue detail omitted; request /api/run?verbose=true for the full list.",
+        }
+        if "low_plddt" in avoid:
+            avoid_section["low_plddt"] = _condense(avoid["low_plddt"])
+
+    out = {
+        "target": {
+            "uniprot_accession": accession,
+            "uniprot_id": uniprot_id,
+            "isoform": isoform_note,
         },
+        "extracellular_domain": {
+            "start": domain_start,
+            "end": domain_end,
+            "trimming_decision": {
+                "trimmed": needs_trim,
+                "reason": trim_reason,
+            },
+        },
+        "structure_selection": structure_selection,
         "trimming": {
             "auth_chain": trim_result["auth_chain"],
             "residues_in_original_chain": trim_result["n_residues_in_original_chain"],
@@ -84,22 +129,7 @@ def build_summary(
             "residues_trimmed_away": trim_result["n_residues_trimmed_away"],
             "missing_unresolved_label_positions": trim_result["missing_label_seq_in_range"],
         },
-        "avoid_residues": (
-            {
-                "glycosylation_sites": avoid["glycosylation"],
-                "disulfide_cysteines": avoid["disulfide_cysteines"],
-                "other_ptms": avoid["other_ptms"],
-                "missing_unresolved": avoid["missing_unresolved"],
-                "counts": {k: len(v) for k, v in avoid.items()},
-            } if verbose else {
-                "glycosylation_sites": _condense(avoid["glycosylation"]),
-                "disulfide_cysteines": _condense(avoid["disulfide_cysteines"]),
-                "other_ptms": _condense(avoid["other_ptms"]),
-                "missing_unresolved": _condense(avoid["missing_unresolved"]),
-                "counts": {k: len(v) for k, v in avoid.items()},
-                "note": "Per-residue detail omitted; request /api/run?verbose=true for the full list.",
-            }
-        ),
+        "avoid_residues": avoid_section,
         "hotspots": {
             "source": hotspot_source,
             "partner_chains": partner_chains,
@@ -113,3 +143,8 @@ def build_summary(
             {"unp_position": pos, **info} for pos, info in sorted(numbering_mismatches.items())
         ],
     }
+
+    if alphafold_fields:
+        out.update(alphafold_fields)
+
+    return out
