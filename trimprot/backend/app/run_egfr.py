@@ -20,7 +20,7 @@ ACCESSION = "P00533"
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
 
 
-def run(accession: str = ACCESSION) -> dict:
+def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
     os.makedirs(OUT_DIR, exist_ok=True)
 
     entry = uniprot.fetch_entry(accession)
@@ -63,6 +63,14 @@ def run(accession: str = ACCESSION) -> dict:
     offset = segments[0]["label_seq_start"] - segments[0]["unp_start"]
     missing_unp = {ls - offset for ls in trim_result["missing_label_seq_in_range"]}
 
+    numbering_mismatches = annotate.find_numbering_mismatches(features["sequence"], u2a, full_structure, auth_chain)
+    if numbering_mismatches:
+        # Don't trust UniProt-annotated positions where the structure's actual residue
+        # doesn't match the canonical UniProt sequence (engineered mutation, construct
+        # variant, etc.) - drop them from the mapping entirely rather than silently
+        # mislabeling a residue.
+        u2a = {pos: auth for pos, auth in u2a.items() if pos not in numbering_mismatches}
+
     avoid = annotate.avoid_residues(features, u2a, domain_start, domain_end, missing_unp)
     avoid_auth_nums = {
         e["auth_seq_num"] for cat in ("glycosylation", "disulfide_cysteines", "other_ptms") for e in avoid[cat]
@@ -73,11 +81,22 @@ def run(accession: str = ACCESSION) -> dict:
     auth_to_unp = {v: k for k, v in u2a.items()}
 
     if partner_chains:
-        hotspots_auth = annotate.interface_hotspots(full_structure, auth_chain, partner_chains)
-        hotspot_source = f"known partner interface (chains {partner_chains})"
+        all_contacts_auth = annotate.interface_hotspots(full_structure, auth_chain, partner_chains)
+        all_contacts_auth -= avoid_auth_nums
+        hydrophobic_auth, other_contacts_auth = annotate.prefer_hydrophobic(all_contacts_auth, full_structure, auth_chain)
+        # Prefer the hydrophobic subset of the real interface as hotspots; only fall
+        # back to the full contact set if none of the contacts are hydrophobic.
+        hotspots_auth = hydrophobic_auth if hydrophobic_auth else all_contacts_auth
+        other_interface_contacts_unp = sorted(auth_to_unp[a] for a in other_contacts_auth if a in auth_to_unp)
+        hotspot_source = (
+            f"known partner interface (chains {partner_chains}), preferring hydrophobic contact residues"
+            if hydrophobic_auth else
+            f"known partner interface (chains {partner_chains}); no hydrophobic contacts found, showing all contacts"
+        )
     else:
         hotspots_auth = annotate.surface_exposed_hotspots(full_structure, auth_chain, avoid_auth_nums)
         hotspot_source = "inferred surface-exposed residues (no bound partner in chosen structure)"
+        other_interface_contacts_unp = []
 
     hotspots_auth -= avoid_auth_nums
     hotspots_unp = sorted(auth_to_unp[a] for a in hotspots_auth if a in auth_to_unp)
@@ -102,11 +121,15 @@ def run(accession: str = ACCESSION) -> dict:
         hotspots_unp=hotspots_unp,
         hotspot_source=hotspot_source,
         partner_chains=partner_chains,
+        other_interface_contacts_unp=other_interface_contacts_unp,
+        numbering_mismatches=numbering_mismatches,
+        verbose=verbose,
     )
 
     avoid_glyco_auth = sorted({e["auth_seq_num"] for e in avoid["glycosylation"] if e["auth_seq_num"] is not None})
     avoid_disulfide_auth = sorted({e["auth_seq_num"] for e in avoid["disulfide_cysteines"] if e["auth_seq_num"] is not None})
     avoid_ptm_auth = sorted({e["auth_seq_num"] for e in avoid["other_ptms"] if e["auth_seq_num"] is not None})
+    other_contacts_auth = sorted(u2a[p] for p in other_interface_contacts_unp if p in u2a)
     result_summary["viewer"] = {
         "pdb_id": pdb_id,
         "auth_chain": auth_chain,
@@ -115,6 +138,7 @@ def run(accession: str = ACCESSION) -> dict:
         "original_cif_file": f"{pdb_id}_full.cif",
         "trimmed_file": f"{pdb_id}_ECD_trimmed.pdb",
         "hotspot_auth_residues": sorted(hotspots_auth),
+        "other_interface_contact_auth_residues": other_contacts_auth,
         "avoid_glycosylation_auth_residues": avoid_glyco_auth,
         "avoid_disulfide_auth_residues": avoid_disulfide_auth,
         "avoid_other_ptm_auth_residues": avoid_ptm_auth,

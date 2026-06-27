@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <title>TrimProt — EGFR Target-Prep Assistant</title>
-<script src="https://cdn.jsdelivr.net/npm/ngl@2.0.1/dist/ngl.js"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/molstar/build/viewer/molstar.css" />
+<script src="https://cdn.jsdelivr.net/npm/molstar/build/viewer/molstar.js"></script>
 <style>
   :root {
     --bg: #0f1116; --panel: #171a21; --border: #2a2e38; --text: #e6e8ee;
@@ -20,10 +21,14 @@
   .viewer-row { display: flex; gap: 12px; }
   .viewer-card { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
   .viewer-card .title { padding: 8px 12px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center;}
-  .viewer-card .stage { width: 100%; height: 420px; }
-  .legend { display:flex; gap:16px; padding: 8px 12px; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
+  .viewer-card .stage { width: 100%; height: 420px; position: relative; }
+  .legend { display:flex; gap:16px; padding: 8px 12px; font-size: 12px; color: var(--muted); flex-wrap:wrap; align-items:center; }
   .legend span { display:inline-flex; align-items:center; gap:6px; }
   .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .mode-toggle { display:flex; gap:6px; margin-left:auto; }
+  .mode-toggle button { background:#1f232c; border:1px solid var(--border); color:var(--muted); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; }
+  .mode-toggle button.active { color:var(--accent); border-color:var(--accent); }
+  .show-all-link { color:var(--accent); cursor:pointer; font-size:12px; text-decoration:underline; margin-left:6px; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; }
   .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
   .panel h3 { font-size: 12px; margin: 14px 0 4px; color: var(--text); }
@@ -77,6 +82,10 @@
       <span><span class="dot" style="background:var(--avoid)"></span>Avoid (glyco / disulfide / missing)</span>
       <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
       <span><span class="dot" style="background:#7a5cff"></span>Bound partner chain</span>
+      <div class="mode-toggle" id="mode-toggle">
+        <button data-mode="default" class="active">Default</button>
+        <button data-mode="hydrophobicity">Hydrophobicity</button>
+      </div>
     </div>
 
     <div class="panel">
@@ -95,8 +104,13 @@
       <div id="avoid-list" class="resgrid">—</div>
     </div>
     <div class="panel">
-      <h2>Candidate hotspots</h2>
+      <h2>Candidate hotspots <span style="color:var(--muted); font-weight:normal; font-size:12px;">(hydrophobic-preferred)</span></h2>
       <div id="hotspot-list" class="resgrid">—</div>
+      <div id="other-contacts" style="margin-top:8px; font-size:12px; color:var(--muted);"></div>
+    </div>
+    <div class="panel" id="numbering-panel" style="display:none;">
+      <h2>Numbering warnings</h2>
+      <div id="numbering-list" class="resgrid"></div>
     </div>
   </div>
 </main>
@@ -109,39 +123,94 @@ const API_BASE = window.location.protocol === 'http:' || window.location.protoco
   : 'http://127.0.0.1:8000';
 
 const statusEl = document.getElementById('status');
-let stageOrig, stageTrim;
+let viewerOrig, viewerTrim;
 
 function setStatus(msg) { statusEl.textContent = msg; }
 
-function colorSchemeFor(authChain, avoidSet, hotspotSet, partnerChains) {
-  return NGL.ColormakerRegistry.addSelectionScheme([
-    [ "purple", partnerChains.map(c => `:${c}`).join(' or ') || "none" ],
-    [ "red", avoidSet.size ? `(${[...avoidSet].join(', ')}) and :${authChain}` : "none" ],
-    [ "green", hotspotSet.size ? `(${[...hotspotSet].join(', ')}) and :${authChain}` : "none" ],
-    [ "lightgrey", "*" ],
-  ]);
+let vizMode = 'default';
+const loadedViewers = []; // { viewer, fileUrl, authChain, avoidSet, hotspotSet, partnerChains }
+
+// Kyte-Doolittle-style hydrophobicity color scale (orange = hydrophobic, blue = polar/charged),
+// reusing the same hydrophobic-residue definition the backend uses for hotspot preference.
+const HYDROPHOBIC_RESNAMES = new Set(['ALA', 'VAL', 'LEU', 'ILE', 'MET', 'PHE', 'TRP', 'PRO', 'TYR']);
+const ALL_RESNAMES = ['ALA','ARG','ASN','ASP','CYS','GLN','GLU','GLY','HIS','ILE','LEU','LYS','MET','PHE','PRO','SER','THR','TRP','TYR','VAL'];
+
+function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, partnerChains, mode }) {
+  const builder = molstar.PluginExtensions.mvs.createBuilder();
+  builder.canvas({ background_color: '#171a21' });
+  const structure = builder.download({ url: fileUrl }).parse({ format: 'pdb' }).modelStructure();
+
+  // Scope the base representation to just the target chain so it never overlaps
+  // with the partner-chain cartoon added below - two competing representations
+  // on the same atoms made the partner color invisible (base grey always won).
+  const base = structure.component({ selector: { auth_asym_id: authChain } }).representation({ type: 'cartoon' });
+  if (mode === 'hydrophobicity') {
+    for (const resname of ALL_RESNAMES) {
+      base.color({ color: HYDROPHOBIC_RESNAMES.has(resname) ? '#d98e3e' : '#5a8fc2', selector: { label_comp_id: resname } });
+    }
+  } else {
+    base.color({ color: '#cfd4dc' });
+  }
+
+  if (partnerChains.length) {
+    structure.component({ selector: partnerChains.map(c => ({ auth_asym_id: c })) })
+      .representation({ type: 'cartoon' }).color({ color: '#7a5cff' });
+  }
+
+  if (avoidAuthList.length) {
+    structure.component({ selector: avoidAuthList.map(n => ({ auth_asym_id: authChain, auth_seq_id: n })) })
+      .representation({ type: 'ball_and_stick' }).color({ color: '#ff5c5c' });
+  }
+  if (hotspotAuthList.length) {
+    structure.component({ selector: hotspotAuthList.map(n => ({ auth_asym_id: authChain, auth_seq_id: n })) })
+      .representation({ type: 'ball_and_stick' }).color({ color: '#36d399' });
+  }
+
+  return JSON.stringify(builder.getState());
 }
 
-async function loadStructure(stage, fileUrl, ext, authChain, avoidSet, hotspotSet, partnerChains) {
-  stage.removeAllComponents();
-  const comp = await stage.loadFile(fileUrl, { ext });
-  const scheme = colorSchemeFor(authChain, avoidSet, hotspotSet, partnerChains);
-  comp.addRepresentation('cartoon', { color: scheme });
-  comp.addRepresentation('ball+stick', {
-    sele: avoidSet.size ? `(${[...avoidSet].join(', ')}) and :${authChain}` : 'none',
-    color: 'red',
+async function applyVizMode(entry, mode) {
+  const state = buildMvsState({ ...entry, mode });
+  await entry.viewer.loadMvsData(state, 'mvsj');
+  // MVS's own camera auto-fit runs against whatever canvas size existed at that
+  // instant; if the container was resized after Viewer.create() but before this
+  // load, the fit is stale. Force a fresh fit against the current canvas size.
+  entry.viewer.plugin.canvas3d?.requestCameraReset();
+}
+
+async function setVizMode(mode) {
+  vizMode = mode;
+  document.querySelectorAll('#mode-toggle button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
   });
-  comp.addRepresentation('ball+stick', {
-    sele: hotspotSet.size ? `(${[...hotspotSet].join(', ')}) and :${authChain}` : 'none',
-    color: 'green',
-  });
-  stage.handleResize();
-  stage.autoView();
+  await Promise.all(loadedViewers.map(entry => applyVizMode(entry, mode)));
+}
+
+async function loadStructure(viewer, fileUrl, authChain, avoidSet, hotspotSet, partnerChains) {
+  const entry = { viewer, fileUrl, authChain, avoidAuthList: [...avoidSet], hotspotAuthList: [...hotspotSet], partnerChains };
+  loadedViewers.push(entry);
+  await applyVizMode(entry, vizMode);
+}
+
+function renderAvoidPills(av) {
+  return av.glycosylation_sites.map(s => `<span class="pill avoid" title="glycosylation">N${s.unp_position}</span>`).join('') +
+    av.disulfide_cysteines.map(s => `<span class="pill avoid" title="disulfide cysteine">C${s.unp_position}</span>`).join('') +
+    av.other_ptms.map(s => `<span class="pill avoid" title="${s.ptm_type}: ${s.description}">${s.ptm_type[0]}${s.unp_position}</span>`).join('') +
+    av.missing_unresolved.map(s => `<span class="pill avoid" title="missing/unresolved">?${s.unp_position}</span>`).join('');
+}
+
+async function showFullAvoidList() {
+  const el = document.getElementById('avoid-list');
+  el.innerHTML = 'Loading full list…';
+  const res = await fetch(`${API_BASE}/api/run?accession=${encodeURIComponent(selectedAccession)}&verbose=true`);
+  const data = await res.json();
+  el.innerHTML = renderAvoidPills(data.avoid_residues);
 }
 
 function renderSummary(data) {
   const t = data.target, ed = data.extracellular_domain, ss = data.structure_selection,
-        tr = data.trimming, av = data.avoid_residues, hs = data.hotspots, viewer = data.viewer;
+        tr = data.trimming, av = data.avoid_residues, hs = data.hotspots, viewer = data.viewer,
+        warnings = data.numbering_warnings || [];
 
   document.getElementById('orig-label').textContent = viewer.pdb_id + ' (full)';
   document.getElementById('trim-label').textContent = viewer.pdb_id + ' (ECD only)';
@@ -158,7 +227,7 @@ function renderSummary(data) {
       <div class="k">Missing/unresolved</div><div>${tr.missing_unresolved_label_positions.length} positions unresolved in this structure</div>
       <div class="k">Avoid-residue counts</div><div>${av.counts.glycosylation} glyco · ${av.counts.disulfide_cysteines} disulfide · ${av.counts.other_ptms} other PTM · ${av.counts.missing_unresolved} missing</div>
       <div class="k">Hotspot source</div><div>${hs.source}</div>
-      <div class="k">Hotspot count</div><div>${hs.count} candidate residues</div>
+      <div class="k">Hotspot count</div><div>${hs.count} candidate residues (+ ${hs.other_interface_contacts_count} other interface contacts not hydrophobic-preferred)</div>
     </div>
   `;
 
@@ -167,14 +236,34 @@ function renderSummary(data) {
     <div style="margin-top:8px;"><a href="${API_BASE}/api/files/${viewer.original_cif_file}" download style="color:var(--muted); font-size:12px;">original CIF</a></div>
   `;
 
-  document.getElementById('avoid-list').innerHTML =
-    av.glycosylation_sites.map(s => `<span class="pill avoid" title="glycosylation">N${s.unp_position}</span>`).join('') +
-    av.disulfide_cysteines.map(s => `<span class="pill avoid" title="disulfide cysteine">C${s.unp_position}</span>`).join('') +
-    av.other_ptms.map(s => `<span class="pill avoid" title="${s.ptm_type}: ${s.description}">${s.ptm_type[0]}${s.unp_position}</span>`).join('') +
-    av.missing_unresolved.map(s => `<span class="pill avoid" title="missing/unresolved">?${s.unp_position}</span>`).join('');
+  // Avoid-residue panel: condensed by default (counts + ranges), full per-residue
+  // pills available on demand so the panel doesn't overwhelm with 50+ entries.
+  document.getElementById('avoid-list').innerHTML = `
+    <div style="font-size:12px; line-height:1.6;">
+      <div>Glyco (${av.glycosylation_sites.count}): ${av.glycosylation_sites.positions_summary}</div>
+      <div>Disulfide (${av.disulfide_cysteines.count}): ${av.disulfide_cysteines.positions_summary}</div>
+      <div>Other PTM (${av.other_ptms.count}): ${av.other_ptms.positions_summary}</div>
+      <div>Missing (${av.missing_unresolved.count}): ${av.missing_unresolved.positions_summary}</div>
+      <span class="show-all-link" id="show-all-avoid">show full per-residue list</span>
+    </div>
+  `;
+  document.getElementById('show-all-avoid').addEventListener('click', showFullAvoidList);
 
   document.getElementById('hotspot-list').innerHTML =
     hs.candidate_residues_unp.map(p => `<span class="pill hotspot">${p}</span>`).join('') || 'None identified';
+  document.getElementById('other-contacts').textContent = hs.other_interface_contacts_count
+    ? `Other interface contacts (not hydrophobic-preferred): ${hs.other_interface_contacts_unp}`
+    : '';
+
+  const numberingPanel = document.getElementById('numbering-panel');
+  if (warnings.length) {
+    numberingPanel.style.display = 'block';
+    document.getElementById('numbering-list').innerHTML = warnings.map(w =>
+      `<div style="font-size:12px;">UniProt ${w.unp_position}: expected ${w.expected_residue}, structure has ${w.structure_residue} (auth ${w.auth_seq_num}) — excluded from mapping</div>`
+    ).join('');
+  } else {
+    numberingPanel.style.display = 'none';
+  }
 }
 
 let selectedAccession = 'P00533';
@@ -188,12 +277,13 @@ async function runPipeline() {
     const data = await res.json();
     renderSummary(data);
 
+    loadedViewers.length = 0;
     const v = data.viewer;
     const avoidAuth = new Set([...v.avoid_glycosylation_auth_residues, ...v.avoid_disulfide_auth_residues, ...v.avoid_other_ptm_auth_residues]);
     const hotspotAuth = new Set(v.hotspot_auth_residues);
 
-    await loadStructure(stageOrig, `${API_BASE}/api/files/${v.original_file}`, 'pdb', v.auth_chain, avoidAuth, hotspotAuth, v.partner_chains);
-    await loadStructure(stageTrim, `${API_BASE}/api/files/${v.trimmed_file}`, 'pdb', v.auth_chain, avoidAuth, hotspotAuth, []);
+    await loadStructure(viewerOrig, `${API_BASE}/api/files/${v.original_file}`, v.auth_chain, avoidAuth, hotspotAuth, v.partner_chains);
+    await loadStructure(viewerTrim, `${API_BASE}/api/files/${v.trimmed_file}`, v.auth_chain, avoidAuth, hotspotAuth, []);
 
     setStatus(`Done. Selected ${v.pdb_id}, chain ${v.auth_chain}.`);
   } catch (e) {
@@ -233,11 +323,29 @@ async function doSearch(q) {
   }
 }
 
-window.addEventListener('load', () => {
-  stageOrig = new NGL.Stage('stage-orig', { backgroundColor: '#171a21' });
-  stageTrim = new NGL.Stage('stage-trim', { backgroundColor: '#171a21' });
-  window.addEventListener('resize', () => { stageOrig.handleResize(); stageTrim.handleResize(); });
+window.addEventListener('load', async () => {
+  const viewerOpts = {
+    layoutIsExpanded: false,
+    layoutShowControls: false,
+    layoutShowRemoteState: false,
+    layoutShowSequence: false,
+    layoutShowLog: false,
+    layoutShowLeftPanel: false,
+    viewportShowExpand: false,
+    viewportShowSelectionMode: false,
+    viewportShowAnimation: false,
+    viewportBackgroundColor: '#171a21',
+  };
+  [viewerOrig, viewerTrim] = await Promise.all([
+    molstar.Viewer.create('stage-orig', viewerOpts),
+    molstar.Viewer.create('stage-trim', viewerOpts),
+  ]);
+  window.addEventListener('resize', () => { viewerOrig.handleResize(); viewerTrim.handleResize(); });
   document.getElementById('run-btn').addEventListener('click', runPipeline);
+
+  document.querySelectorAll('#mode-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => setVizMode(btn.dataset.mode));
+  });
 
   const input = document.getElementById('search-input');
   input.value = 'EGFR';

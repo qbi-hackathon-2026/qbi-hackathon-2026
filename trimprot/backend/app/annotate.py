@@ -3,6 +3,15 @@ import gemmi
 
 CONTACT_CUTOFF = 4.5  # Angstrom, heavy-atom distance for interface contacts
 
+AA3TO1 = {
+    "ALA": "A", "ARG": "R", "ASN": "N", "ASP": "D", "CYS": "C", "GLN": "Q",
+    "GLU": "E", "GLY": "G", "HIS": "H", "ILE": "I", "LEU": "L", "LYS": "K",
+    "MET": "M", "PHE": "F", "PRO": "P", "SER": "S", "THR": "T", "TRP": "W",
+    "TYR": "Y", "VAL": "V",
+}
+
+HYDROPHOBIC_RESNAMES = {"ALA", "VAL", "LEU", "ILE", "MET", "PHE", "TRP", "PRO", "TYR"}
+
 
 def unp_to_auth_map(scheme: dict, segments: list[dict], struct_asym: str) -> dict[int, int]:
     """UniProt residue position -> auth_seq_num, for residues actually present in the structure."""
@@ -13,6 +22,39 @@ def unp_to_auth_map(scheme: dict, segments: list[dict], struct_asym: str) -> dic
         if info["present"]:
             out[label_seq - offset] = info["auth_seq_num"]
     return out
+
+
+def find_numbering_mismatches(
+    unp_sequence: str,
+    unp_to_auth: dict[int, int],
+    structure: gemmi.Structure,
+    auth_chain: str,
+) -> dict[int, dict]:
+    """Spot-check the UniProt<->structure mapping by comparing expected residue type
+    (from the UniProt sequence) against the actual residue at the mapped auth position.
+
+    Real systemic numbering bugs show up as a run of consecutive mismatches (a
+    frameshift); an isolated single mismatch with correct neighbors on either side is
+    a genuine sequence difference between canonical UniProt and the crystallized
+    construct (engineered mutation, polymorphism, etc.), not a mapping error - but
+    either way it's not safe to treat as the UniProt-annotated residue, so callers
+    should exclude these positions from avoid-residue/hotspot reporting.
+    """
+    chain = structure[0][auth_chain]
+    auth_to_resname = {res.seqid.num: res.name for res in chain.get_polymer()}
+
+    mismatches = {}
+    for unp_pos, auth_num in unp_to_auth.items():
+        expected = unp_sequence[unp_pos - 1] if 1 <= unp_pos <= len(unp_sequence) else None
+        actual_resname = auth_to_resname.get(auth_num)
+        actual = AA3TO1.get(actual_resname)
+        if expected and actual and expected != actual:
+            mismatches[unp_pos] = {
+                "auth_seq_num": auth_num,
+                "expected_residue": expected,
+                "structure_residue": actual_resname,
+            }
+    return mismatches
 
 
 def avoid_residues(
@@ -95,6 +137,29 @@ def interface_hotspots(
                     contacts.add(res.seqid.num)
                     break
     return contacts
+
+
+def prefer_hydrophobic(
+    contact_auth_nums: set[int],
+    structure: gemmi.Structure,
+    target_auth_chain: str,
+) -> tuple[set[int], set[int]]:
+    """Split an interface-contact set into a hydrophobic-preferred subset and the rest.
+
+    Hydrophobic residues at an existing antibody/partner interface are generally
+    preferred binder-design hotspots over charged/polar contact residues. If none of
+    the contacts are hydrophobic, the preferred set is empty and callers should fall
+    back to the full contact set rather than reporting no hotspots at all.
+    """
+    chain = structure[0][target_auth_chain]
+    resname_by_auth = {res.seqid.num: res.name for res in chain.get_polymer()}
+
+    hydrophobic = {
+        n for n in contact_auth_nums
+        if resname_by_auth.get(n) in HYDROPHOBIC_RESNAMES
+    }
+    rest = contact_auth_nums - hydrophobic
+    return hydrophobic, rest
 
 
 def surface_exposed_hotspots(

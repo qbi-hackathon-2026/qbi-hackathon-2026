@@ -1,6 +1,31 @@
 """Assemble the structured design-prep summary described in the TrimProt spec."""
 
 
+def compact_ranges(positions: list[int]) -> str:
+    """Collapse a sorted list of residue positions into a compact range string,
+    e.g. [56, 73, 128, 129, 130] -> "56, 73, 128-130". Used to keep the default
+    (non-verbose) summary readable instead of dumping every residue individually.
+    """
+    positions = sorted(set(positions))
+    if not positions:
+        return "none"
+    ranges = []
+    start = prev = positions[0]
+    for pos in positions[1:]:
+        if pos == prev + 1:
+            prev = pos
+            continue
+        ranges.append(f"{start}-{prev}" if start != prev else f"{start}")
+        start = prev = pos
+    ranges.append(f"{start}-{prev}" if start != prev else f"{start}")
+    return ", ".join(ranges)
+
+
+def _condense(entries: list[dict], key: str = "unp_position") -> dict:
+    positions = [e[key] for e in entries]
+    return {"count": len(entries), "positions_summary": compact_ranges(positions)}
+
+
 def build_summary(
     *,
     accession: str,
@@ -17,7 +42,12 @@ def build_summary(
     hotspots_unp: list[int],
     hotspot_source: str,
     partner_chains: list[str],
+    other_interface_contacts_unp: list[int] | None = None,
+    numbering_mismatches: dict | None = None,
+    verbose: bool = False,
 ) -> dict:
+    other_interface_contacts_unp = other_interface_contacts_unp or []
+    numbering_mismatches = numbering_mismatches or {}
     return {
         "target": {
             "uniprot_accession": accession,
@@ -54,17 +84,32 @@ def build_summary(
             "residues_trimmed_away": trim_result["n_residues_trimmed_away"],
             "missing_unresolved_label_positions": trim_result["missing_label_seq_in_range"],
         },
-        "avoid_residues": {
-            "glycosylation_sites": avoid["glycosylation"],
-            "disulfide_cysteines": avoid["disulfide_cysteines"],
-            "other_ptms": avoid["other_ptms"],
-            "missing_unresolved": avoid["missing_unresolved"],
-            "counts": {k: len(v) for k, v in avoid.items()},
-        },
+        "avoid_residues": (
+            {
+                "glycosylation_sites": avoid["glycosylation"],
+                "disulfide_cysteines": avoid["disulfide_cysteines"],
+                "other_ptms": avoid["other_ptms"],
+                "missing_unresolved": avoid["missing_unresolved"],
+                "counts": {k: len(v) for k, v in avoid.items()},
+            } if verbose else {
+                "glycosylation_sites": _condense(avoid["glycosylation"]),
+                "disulfide_cysteines": _condense(avoid["disulfide_cysteines"]),
+                "other_ptms": _condense(avoid["other_ptms"]),
+                "missing_unresolved": _condense(avoid["missing_unresolved"]),
+                "counts": {k: len(v) for k, v in avoid.items()},
+                "note": "Per-residue detail omitted; request /api/run?verbose=true for the full list.",
+            }
+        ),
         "hotspots": {
             "source": hotspot_source,
             "partner_chains": partner_chains,
             "candidate_residues_unp": hotspots_unp,
+            "candidate_residues_summary": compact_ranges(hotspots_unp),
             "count": len(hotspots_unp),
+            "other_interface_contacts_unp": other_interface_contacts_unp if verbose else compact_ranges(other_interface_contacts_unp),
+            "other_interface_contacts_count": len(other_interface_contacts_unp),
         },
+        "numbering_warnings": [
+            {"unp_position": pos, **info} for pos, info in sorted(numbering_mismatches.items())
+        ],
     }

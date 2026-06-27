@@ -28,13 +28,14 @@ def search(q: str):
 
 
 @app.get("/api/run")
-def run_pipeline(accession: str = "P00533", refresh: bool = False):
-    if accession not in _cache or refresh:
+def run_pipeline(accession: str = "P00533", refresh: bool = False, verbose: bool = False):
+    cache_key = (accession, verbose)
+    if cache_key not in _cache or refresh:
         try:
-            _cache[accession] = run_egfr.run(accession)
+            _cache[cache_key] = run_egfr.run(accession, verbose=verbose)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-    return _cache[accession]
+    return _cache[cache_key]
 
 
 @app.get("/api/files/{filename}")
