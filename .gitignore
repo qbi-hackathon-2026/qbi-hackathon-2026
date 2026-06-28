@@ -22,7 +22,11 @@ gcp-*.json
 service-account*.json
 *-credentials.json
 
-# ── TrimProt pipeline outputs / caches (regenerated per run) ─────────────
+# ── BindScout pipeline outputs / caches (regenerated per run) ────────────
+bindscout/outputs/
+bindscout/cache/
+bindscout/.venv/
+# Legacy pre-rename paths — local generated artifacts may still linger here.
 trimprot/outputs/
 trimprot/cache/
 trimprot/.venv/
@@ -30,7 +34,7 @@ trimprot/.venv/
 # ── Editor / agent / OS local state ──────────────────────────────────────
 .claude/
 CLAUDE.md
-trimprot/HOSTING.md
+bindscout/HOSTING.md
 .vscode/
 .idea/
 .DS_Store

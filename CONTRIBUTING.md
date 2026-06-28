@@ -1,6 +1,6 @@
-# Contributing to TrimProt
+# Contributing to BindScout
 
-Thanks for your interest in improving TrimProt! Bug reports, fixes, and small
+Thanks for your interest in improving BindScout! Bug reports, fixes, and small
 focused improvements are all welcome.
 
 ## Ways to contribute
@@ -14,15 +14,15 @@ focused improvements are all welcome.
 
 ## Development setup
 
-The app is a deterministic Python pipeline (`trimprot/src/trimprot/`, managed
+The app is a deterministic Python pipeline (`bindscout/src/bindscout/`, managed
 with [uv](https://docs.astral.sh/uv/)) served by a FastAPI app, plus a single
-static frontend file (`trimprot/frontend/index.html`). There is no build step
+static frontend file (`bindscout/frontend/index.html`). There is no build step
 for the frontend.
 
 ```bash
-cd trimprot
+cd bindscout
 uv sync                                 # creates an isolated env (Python >=3.11)
-uv run python -m trimprot.server        # then open http://127.0.0.1:8000/
+uv run python -m bindscout.server        # then open http://127.0.0.1:8000/
 ```
 
 `uv` downloads the right Python automatically, so you don't need a matching
@@ -32,7 +32,7 @@ system interpreter. See the [root README](README.md) for the interfaces (web app
 ## Running tests
 
 ```bash
-cd trimprot
+cd bindscout
 uv sync --extra dev
 uv run pytest -m "not network"   # offline unit tests (what CI runs)
 uv run pytest                     # full suite (hits UniProt/PDBe/RCSB)
@@ -50,8 +50,8 @@ CI.
 - **Match the surrounding style.** The backend is plain typed Python; the
   frontend is a single vanilla-JS/CSS file with no framework or build step.
 - **Don't commit secrets, credentials, or generated output.** The pipeline
-  writes regenerated files under `trimprot/outputs/` (and caches under
-  `trimprot/cache/`) — these are gitignored and must not be added.
+  writes regenerated files under `bindscout/outputs/` (and caches under
+  `bindscout/cache/`) — these are gitignored and must not be added.
 - **Describe what and why** in the PR body, and link any related Issue.
 
 ## A note on CI and deployment for outside contributors

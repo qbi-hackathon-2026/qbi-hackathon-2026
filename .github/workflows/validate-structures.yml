@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: trimprot
+        working-directory: bindscout
     steps:
       - uses: actions/checkout@v4
 
@@ -35,9 +35,9 @@ jobs:
 
       - name: Generate outputs for reference targets
         run: |
-          uv run trimprot --protein EGFR        # antibody-bound
-          uv run trimprot --accession P01375    # TNF-alpha
-          uv run trimprot --accession B6A8C7    # TARM1 (AlphaFold fallback)
+          uv run bindscout --protein EGFR        # antibody-bound
+          uv run bindscout --accession P01375    # TNF-alpha
+          uv run bindscout --accession B6A8C7    # TARM1 (AlphaFold fallback)
 
       - name: Audit chosen structures
         run: uv run python validate_structures.py

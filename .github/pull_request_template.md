@@ -1,4 +1,4 @@
-<!-- Thanks for contributing to TrimProt! Please fill out the sections below. -->
+<!-- Thanks for contributing to BindScout! Please fill out the sections below. -->
 
 ## What does this PR do?
 
@@ -11,7 +11,7 @@
 ## How was this tested?
 
 <!-- Commands you ran and what you observed. For example: -->
-<!-- - `cd trimprot && uv run pytest -m "not network"` -->
+<!-- - `cd bindscout && uv run pytest -m "not network"` -->
 <!-- - Loaded the page, searched <accession>, confirmed the viewer/summary rendered. -->
 
 ## Checklist

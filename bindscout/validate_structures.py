@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only auditor for trimprot structure choices.
+"""Read-only auditor for BindScout structure choices.
 
 For every target under ./outputs/, read summary.json and independently re-query
 the RCSB Data API (REST) to verify the chosen PDB: method/resolution, per-entity
@@ -10,7 +10,7 @@ summary.json and talks to RCSB.
 Exit status is nonzero if any target is "MISLABELED" (claims a partner-bound
 complex whose partner is not actually an antibody) so it is CI-catchable.
 
-    cd trimprot && ./.venv/bin/python validate_structures.py   # or: python validate_structures.py
+    cd bindscout && ./.venv/bin/python validate_structures.py   # or: python validate_structures.py
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ CACHE = ROOT / "cache" / "rcsb"
 REST = "https://data.rcsb.org/rest/v1/core"
 
 _SESSION = requests.Session()
-_SESSION.headers["User-Agent"] = "trimprot-validate/1.0"
+_SESSION.headers["User-Agent"] = "bindscout-validate/1.0"
 
 # --- antibody signal vocabularies -------------------------------------------
 # Immunoglobulin-fold domain annotations. NOTE: an Ig fold ALONE is ambiguous —

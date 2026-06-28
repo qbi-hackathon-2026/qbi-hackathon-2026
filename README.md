@@ -1,6 +1,6 @@
 <div align="center">
 
-# TrimProt
+# BindScout
 
 **Deterministic protein target-preparation for de novo binder design.**
 
@@ -10,7 +10,7 @@
 
 </div>
 
-Give TrimProt a protein (a gene name, protein name, or UniProt accession) and it
+Give BindScout a protein (a gene name, protein name, or UniProt accession) and it
 prepares a design-ready target: it resolves the UniProt entry, finds and ranks
 structures, trims to the relevant domain, identifies candidate **hotspot**
 residues and an epitope **patch**, builds an **avoid** set, and renders it all in
@@ -25,7 +25,7 @@ With [uv](https://docs.astral.sh/uv/) and `git` installed:
 
 ```bash
 git clone https://github.com/qbi-hackathon-2026/qbi-hackathon-2026.git
-cd qbi-hackathon-2026/trimprot
+cd qbi-hackathon-2026/bindscout
 uv sync
 ```
 
@@ -56,11 +56,11 @@ brew install git uv
 **4. Download the code and set it up:**
 ```bash
 git clone https://github.com/qbi-hackathon-2026/qbi-hackathon-2026.git
-cd qbi-hackathon-2026/trimprot
+cd qbi-hackathon-2026/bindscout
 uv sync
 ```
 
-You're ready — see [Running TrimProt](#running-trimprot) below.
+You're ready — see [Running BindScout](#running-bindscout) below.
 
 </details>
 
@@ -85,22 +85,22 @@ open a new one** so the new tools are available.
 **3. Download the code and set it up:**
 ```powershell
 git clone https://github.com/qbi-hackathon-2026/qbi-hackathon-2026.git
-cd qbi-hackathon-2026\trimprot
+cd qbi-hackathon-2026\bindscout
 uv sync
 ```
 
-You're ready — see [Running TrimProt](#running-trimprot) below.
+You're ready — see [Running BindScout](#running-bindscout) below.
 
 </details>
 
 ---
 
-## Running TrimProt
+## Running BindScout
 
-Start the web app from the `trimprot` folder:
+Start the web app from the `bindscout` folder:
 
 ```bash
-uv run python -m trimprot.server
+uv run python -m bindscout.server
 ```
 
 Leave that window open. When you see `Uvicorn running on http://127.0.0.1:8000`,
@@ -140,7 +140,7 @@ To stop the app, click its terminal window and press **Ctrl + C**.
 
 ## Output
 
-For each target, TrimProt emits files under `trimprot/outputs/<TARGET>/`,
+For each target, BindScout emits files under `bindscout/outputs/<TARGET>/`,
 downloadable from the page:
 
 - `trimmed.pdb` — the design-ready trimmed target (author numbering preserved)
@@ -152,7 +152,7 @@ downloadable from the page:
 
 ---
 
-## How TrimProt picks a structure
+## How BindScout picks a structure
 
 <details>
 <summary><b>How the selection ladder works</b></summary>
@@ -175,7 +175,7 @@ which can be downloaded.
 ## Correctness guarantees
 
 <details>
-<summary><b>The structural details TrimProt handles correctly</b></summary>
+<summary><b>The structural details BindScout handles correctly</b></summary>
 
 <br>
 
@@ -197,7 +197,7 @@ which can be downloaded.
 ## Development
 
 ```bash
-cd trimprot
+cd bindscout
 uv sync --extra dev
 uv run pytest -m "not network"     # offline unit tests (run in CI)
 uv run pytest                       # full suite (hits UniProt/PDBe/RCSB)
@@ -209,4 +209,4 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to contribute.
 
 ## License
 
-[MIT](LICENSE) © TrimProt contributors.
+[MIT](LICENSE) © BindScout contributors.

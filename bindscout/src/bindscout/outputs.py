@@ -166,11 +166,11 @@ def emit_outputs(result: PipelineResult, base_dir: Path) -> Path:
 
     # summary.json
     summary = build_summary(result)
-    (outdir / "summary.json").write_text(json.dumps(summary, indent=2))
+    (outdir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
     # hotspots.csv — FULL ranked list, with an in_patch flag for the BindCraft patch
     patch_keys = {(h.num, h.icode.strip()) for h in result.patch}
-    with (outdir / "hotspots.csv").open("w", newline="") as fh:
+    with (outdir / "hotspots.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["chain", "pdb_auth_residue", "uniprot_residue",
                     "contact_count", "source", "in_patch"])
@@ -181,7 +181,7 @@ def emit_outputs(result: PipelineResult, base_dir: Path) -> Path:
                         h.contact_count, h.source, in_patch])
 
     # avoid_residues.csv
-    with (outdir / "avoid_residues.csv").open("w", newline="") as fh:
+    with (outdir / "avoid_residues.csv").open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["chain", "pdb_auth_residue", "uniprot_residue", "reasons"])
         out_chain = result.trim.target_chain
@@ -192,15 +192,15 @@ def emit_outputs(result: PipelineResult, base_dir: Path) -> Path:
 
     # bindcraft_config.json
     config = build_bindcraft_config(result, outdir)
-    (outdir / "bindcraft_config.json").write_text(json.dumps(config, indent=2))
+    (outdir / "bindcraft_config.json").write_text(json.dumps(config, indent=2), encoding="utf-8")
 
     # viewer.html (self-contained): trimmed target with hotspot residues highlighted
     html = build_viewer_html(
         target=target,
         pdb_id=result.choice.chosen.pdb_id,
-        pdb_text=trimmed_path.read_text(),
+        pdb_text=trimmed_path.read_text(encoding="utf-8"),
         hotspot_residues=[h.num for h in result.hotspots],
     )
-    (outdir / "viewer.html").write_text(html)
+    (outdir / "viewer.html").write_text(html, encoding="utf-8")
 
     return outdir
