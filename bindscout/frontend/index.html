@@ -580,6 +580,48 @@ function renderProtter(s) {
   img.src = `${API_BASE}/api/protter/${encodeURIComponent(acc)}`;
 }
 
+// Render a completed pipeline run (summary + file URLs) into the sidebar and the
+// two 3D viewers. Shared by the search flow (runPipeline) and the chat assistant.
+async function renderRun(s, files, sel) {
+  window.loadedContext = s;   // let the chat assistant know what's on screen
+  leftView = rightView = null;
+  $('results').style.display = 'block';
+  $('warnings').innerHTML = '';
+  renderProteinHead(s, sel || null);
+  renderWarnings(s);
+  $('left-label').textContent = (s.structure && s.structure.chosen_pdb || '').toUpperCase();
+  renderSummary(s);
+  renderProtter(s);
+
+  // LEFT — full assembly, each chain a distinct color (guarded)
+  const L = await loadViewer('stage-left', API_BASE + files.original, 'cif');
+  if (L.view) {
+    leftView = L.view;
+    const lchains = [...new Set(L.model.selectedAtoms({}).map(a => a.chain))].sort();
+    leftView.setStyle({}, { cartoon: { color: '0x8c97a8' } });
+    lchains.forEach((ch, i) => leftView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
+    addChainLabels(leftView, L.model, lchains);
+    enableHover(leftView);
+    leftView.zoomTo(); leftView.render();
+  }
+
+  // RIGHT — trimmed target; hotspots green, patch orange (guarded)
+  const hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
+  _patch = (s.viewer && s.viewer.patch_auth_residues) || [];
+  const R = await loadViewer('stage-right', API_BASE + files.trimmed, 'pdb');
+  if (R.view) {
+    rightView = R.view;
+    const rchains = [...new Set(R.model.selectedAtoms({}).map(a => a.chain))].sort();
+    rchains.forEach((ch, i) => rightView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
+    if (rchains.length > 1) addChainLabels(rightView, R.model, rchains);
+    if (hot.length) rightView.setStyle({ resi: hot }, { cartoon: { color: '0x33cc33' }, stick: { color: '0x33cc33', radius: 0.2 } });
+    if (_patch.length) rightView.setStyle({ resi: _patch }, { cartoon: { color: '0xff7f0e' }, stick: { color: '0xff7f0e', radius: 0.25 }, sphere: { color: '0xff7f0e', scale: 0.3 } });
+    addDomainLabels(rightView, R.model, (s.viewer && s.viewer.target_chain), (s.viewer && s.viewer.domains) || []);
+    enableHover(rightView);
+    rightView.zoomTo(); rightView.render();
+  }
+}
+
 async function runPipeline() {
   if (!selectedTarget) return;
   $('search-hints').classList.add('hide');   // a target is loading; hide the "try…" hint
@@ -593,43 +635,8 @@ async function runPipeline() {
     const out = await resp.json();
     if (!resp.ok || out.error) throw new Error(out.error || ('HTTP ' + resp.status));
     const s = out.summary;
-
-    // Render the data-driven UI FIRST, so the summary/sidebar always populate
-    // even if a viewer fails to render.
-    renderProteinHead(s, selectedHit);
-    renderWarnings(s);
-    $('left-label').textContent = (s.structure && s.structure.chosen_pdb || '').toUpperCase();
-    renderSummary(s);
-    renderProtter(s);
+    await renderRun(s, out.files, selectedHit);
     setStatus(`Done. Selected <strong>${esc((s.structure && s.structure.chosen_pdb || '').toUpperCase())}, chain ${esc((s.structure && s.structure.target_chain) || '?')}.</strong>`);
-
-    // LEFT — full assembly, each chain a distinct color (guarded)
-    const L = await loadViewer('stage-left', API_BASE + out.files.original, 'cif');
-    if (L.view) {
-      leftView = L.view;
-      const lchains = [...new Set(L.model.selectedAtoms({}).map(a => a.chain))].sort();
-      leftView.setStyle({}, { cartoon: { color: '0x8c97a8' } });
-      lchains.forEach((ch, i) => leftView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
-      addChainLabels(leftView, L.model, lchains);
-      enableHover(leftView);
-      leftView.zoomTo(); leftView.render();
-    }
-
-    // RIGHT — trimmed target; hotspots green, patch orange (guarded)
-    const hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
-    _patch = (s.viewer && s.viewer.patch_auth_residues) || [];
-    const R = await loadViewer('stage-right', API_BASE + out.files.trimmed, 'pdb');
-    if (R.view) {
-      rightView = R.view;
-      const rchains = [...new Set(R.model.selectedAtoms({}).map(a => a.chain))].sort();
-      rchains.forEach((ch, i) => rightView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
-      if (rchains.length > 1) addChainLabels(rightView, R.model, rchains);
-      if (hot.length) rightView.setStyle({ resi: hot }, { cartoon: { color: '0x33cc33' }, stick: { color: '0x33cc33', radius: 0.2 } });
-      if (_patch.length) rightView.setStyle({ resi: _patch }, { cartoon: { color: '0xff7f0e' }, stick: { color: '0xff7f0e', radius: 0.25 }, sphere: { color: '0xff7f0e', scale: 0.3 } });
-      addDomainLabels(rightView, R.model, (s.viewer && s.viewer.target_chain), (s.viewer && s.viewer.domains) || []);
-      enableHover(rightView);
-      rightView.zoomTo(); rightView.render();
-    }
   } catch (e) {
     setStatus('Error: ' + esc(e.message));
     $('summary-body').className = 'placeholder';
@@ -767,6 +774,107 @@ window.addEventListener('load', () => {
   window.addEventListener('resize', () => { if (leftView) leftView.resize(); if (rightView) rightView.resize(); });
   input.focus();
 });
+</script>
+
+<style>
+  #chat-fab { position: fixed; right: 20px; bottom: 20px; z-index: 50; background: var(--accent); color: #fff; border: none; border-radius: 999px; padding: 12px 18px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+  #chat-fab:hover { filter: brightness(1.07); }
+  #chat-panel { position: fixed; right: 20px; bottom: 20px; z-index: 51; width: 380px; max-width: calc(100vw - 40px); height: 520px; max-height: calc(100vh - 40px); background: var(--panel); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,.3); display: none; flex-direction: column; overflow: hidden; }
+  #chat-panel.open { display: flex; }
+  #chat-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  #chat-head .t { font-size: 14px; font-weight: 600; }
+  #chat-head .t .bind { color: var(--accent); }
+  #chat-head .sub { font-size: 11px; color: var(--muted); margin-top: 2px; max-width: 280px; }
+  #chat-close { background: none; border: none; color: var(--muted); font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px; }
+  #chat-log { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .chat-msg { display: flex; }
+  .chat-msg.user { justify-content: flex-end; }
+  .chat-msg .bubble { max-width: 86%; padding: 8px 11px; border-radius: 12px; font-size: 13px; line-height: 1.45; word-wrap: break-word; overflow-wrap: anywhere; }
+  .chat-msg.user .bubble { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .chat-msg.assistant .bubble { background: var(--chip); color: var(--text); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .chat-msg.assistant .bubble code { font-family: ui-monospace, Menlo, monospace; background: var(--bg); padding: 1px 4px; border-radius: 4px; font-size: 12px; }
+  .chat-msg.typing .bubble { color: var(--muted); }
+  .chat-tools { font-size: 10.5px; color: var(--muted); margin-top: 4px; font-family: ui-monospace, Menlo, monospace; }
+  .chat-err { color: var(--avoid); }
+  #chat-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); }
+  #chat-input { flex: 1; resize: none; background: var(--bg); border: 1px solid var(--border); border-radius: 9px; color: var(--text); padding: 9px 11px; font: inherit; font-size: 13px; max-height: 90px; }
+  #chat-input:focus { outline: none; border-color: var(--accent); }
+  #chat-send { background: var(--accent); color: #fff; border: none; border-radius: 9px; padding: 0 14px; font-size: 13px; font-weight: 600; cursor: pointer; align-self: stretch; }
+  #chat-send:disabled { opacity: .5; cursor: default; }
+  #chat-log .chat-hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  #chat-log .chat-hint b { color: var(--text); font-weight: 600; }
+</style>
+
+<button id="chat-fab" type="button">💬 Ask BindScout</button>
+<div id="chat-panel" role="dialog" aria-label="BindScout assistant">
+  <div id="chat-head">
+    <div>
+      <div class="t">Ask <span class="bind">BindScout</span></div>
+      <div class="sub">Runs the real pipeline tools — answers are grounded, not guessed.</div>
+    </div>
+    <button id="chat-close" type="button" aria-label="Close assistant">&times;</button>
+  </div>
+  <div id="chat-log">
+    <div class="chat-hint">Try: <b>“Why was this PDB chosen?”</b> · <b>“Re-trim with a 20-residue membrane buffer”</b> · <b>“What are the glycosylation sites on EGFR?”</b></div>
+  </div>
+  <form id="chat-form">
+    <textarea id="chat-input" rows="1" placeholder="Ask about the target…" autocomplete="off"></textarea>
+    <button id="chat-send" type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+(function () {
+  const $c = id => document.getElementById(id);
+  const log = $c('chat-log'), panel = $c('chat-panel'), input = $c('chat-input');
+  const chatHistory = [];
+  let chatBusy = false;
+
+  const escc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  const mdLite = s => escc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
+  const scrollChat = () => { log.scrollTop = log.scrollHeight; };
+  function push(role, html) {
+    const m = document.createElement('div'); m.className = 'chat-msg ' + role;
+    const b = document.createElement('div'); b.className = 'bubble'; b.innerHTML = html;
+    m.appendChild(b); log.appendChild(m); scrollChat(); return m;
+  }
+
+  async function send() {
+    const text = input.value.trim();
+    if (!text || chatBusy) return;
+    input.value = ''; input.style.height = 'auto'; chatBusy = true; $c('chat-send').disabled = true;
+    push('user', escc(text));
+    chatHistory.push({ role: 'user', content: text });
+    const m = push('assistant', 'thinking…'); m.classList.add('typing');
+    try {
+      const base = (location.protocol === 'http:' || location.protocol === 'https:') ? '' : 'http://127.0.0.1:8000';
+      const r = await fetch(base + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: chatHistory, context: window.loadedContext || null }) });
+      const out = await r.json();
+      if (!r.ok || out.error) throw new Error(out.error || ('HTTP ' + r.status));
+      m.classList.remove('typing');
+      m.querySelector('.bubble').innerHTML = mdLite(out.reply || '(no reply)');
+      chatHistory.push({ role: 'assistant', content: out.reply || '' });
+      if (out.tools_used && out.tools_used.length) {
+        const names = [...new Set(out.tools_used.map(t => t.tool))].join(', ');
+        const n = document.createElement('div'); n.className = 'chat-tools'; n.textContent = '✓ ran: ' + names; m.appendChild(n);
+      }
+      if (out.files && out.summary && typeof renderRun === 'function') {
+        try { await renderRun(out.summary, out.files, null); const res = document.getElementById('results'); if (res) res.scrollIntoView({ behavior: 'smooth' }); } catch (e) {}
+      }
+    } catch (e) {
+      m.classList.remove('typing');
+      m.querySelector('.bubble').innerHTML = '<span class="chat-err">' + escc(e.message) + '</span>';
+    } finally {
+      chatBusy = false; $c('chat-send').disabled = false; scrollChat(); input.focus();
+    }
+  }
+
+  $c('chat-fab').addEventListener('click', () => { panel.classList.add('open'); $c('chat-fab').style.display = 'none'; input.focus(); });
+  $c('chat-close').addEventListener('click', () => { panel.classList.remove('open'); $c('chat-fab').style.display = ''; });
+  $c('chat-form').addEventListener('submit', e => { e.preventDefault(); send(); });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+  input.addEventListener('input', () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 90) + 'px'; });
+})();
 </script>
 </body>
 </html>

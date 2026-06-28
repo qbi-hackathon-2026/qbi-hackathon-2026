@@ -115,6 +115,12 @@ Then:
    green, the epitope patch in orange — with chain/domain labels, per-residue
    hover, and a "focus patch" button.
 3. **Download** the prepared artifacts from the page (see [Output](#output)).
+4. **Ask BindScout** (optional) — click the chat panel to ask about the loaded
+   target or re-run the pipeline with different settings in plain English. The
+   assistant needs an Anthropic API key: copy `bindscout/.env.example` to
+   `bindscout/.env` and set `ANTHROPIC_API_KEY` (get one at
+   [console.anthropic.com](https://console.anthropic.com)). The rest of the app
+   works without it.
 
 To stop the app, click its terminal window and press **Ctrl + C**.
 
@@ -149,6 +155,26 @@ downloadable from the page:
   ranges, hotspots, epitope patch, avoid set, warnings
 - `hotspots.csv` — ranked hotspots with an `in_patch` flag
 - an epitope-patch config
+
+---
+
+## Ask BindScout (chat assistant)
+
+A chat panel in the web app that answers questions about the target you've loaded
+and can re-run the pipeline in plain English. Claude orchestrates the **same
+deterministic tools** the app already uses, so answers are grounded in real
+pipeline output — not guessed. Requires `ANTHROPIC_API_KEY` (see
+[Running BindScout](#running-bindscout)); the rest of the app works without it.
+
+**Try asking:**
+
+- *"Why was this PDB chosen?"* · *"What were the runner-up structures?"*
+- *"List the hotspots and the epitope patch."* · *"What's in the avoid set, and why?"*
+- *"What are the extracellular-domain ranges?"* · *"Which residues are membrane-proximal?"*
+- *"What are the glycosylation sites on EGFR?"* · *"Show the candidate structures."*
+- *"Re-trim with a 20-residue membrane buffer."* · *"Run it again without an epitope patch."*
+- *"Prefer an apo structure instead."* · *"Prepare insulin instead."* (the viewers refresh)
+- *"What does EGFR do?"* — short, general-background answers too.
 
 ---
 
@@ -191,6 +217,18 @@ which can be downloaded.
    avoid set.
 
 </details>
+
+---
+
+## Next steps
+
+- **By-domain / residue-range trimming** — let the assistant trim to a specific
+  Pfam domain or residue range (e.g. "trim to just domain 3"), not only the full ECD.
+- **Grounded general knowledge** — give the assistant web search so background
+  questions cite live sources instead of relying on model memory.
+- **Stability & affinity scoring** — integrate a folding/ΔΔG and binding-affinity
+  tool so the assistant can answer "will this stay folded?" with a real number
+  rather than a caveat.
 
 ---
 
