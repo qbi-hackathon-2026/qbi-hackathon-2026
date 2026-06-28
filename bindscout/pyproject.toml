@@ -2,7 +2,6 @@
 name = "bindscout"
 version = "0.1.0"
 description = "Deterministic target-resolution, structure-selection, and binding-epitope discovery pipeline for de novo binder design"
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "gemmi>=0.6.6",
