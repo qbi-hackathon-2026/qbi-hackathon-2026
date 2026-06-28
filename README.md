@@ -144,6 +144,17 @@ downloadable from the page:
 - `hotspots.csv` — ranked hotspots with an `in_patch` flag
 - a BindCraft config for the epitope patch
 
+## How TrimProt picks a structure
+
+Candidates come from **PDBe `best_structures`** (UniProt-mapped), enriched via the
+**RCSB Data API** (partner chains, method, resolution) and validated against
+**PDBe SIFTS** numbering. Selection is a priority ladder, not a weighted
+score: it keeps usable structures (valid numbering, sane resolution) that cover
+the extracellular domain, prefers them by partner type (**antibody-bound ▸
+ligand-bound ▸ apo**), then by coverage and completeness. Method and resolution
+only break ties. The reasoning behind each pick is written to `summary.json`,
+which can be downloaded.
+
 ## Correctness guarantees
 
 1. Everything operates on **author numbering** (`gemmi residue.seqid.num` + insertion code). Never renumbered.
