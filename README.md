@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/bonsai-logo.svg" alt="Bonsai logo" width="96" />
+<img src="docs/images/bonsai_ui.png" alt="Bonsai UI" width="100%" />
 
 # Bonsai
 
