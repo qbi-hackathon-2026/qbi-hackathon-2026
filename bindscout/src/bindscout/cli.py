@@ -57,11 +57,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--min-ecd-coverage", type=float, default=0.40,
                    help="minimum ECD coverage a structure must have to be eligible")
     p.add_argument("--patch-radius", type=float, default=11.0,
-                   help="CB contiguity radius (Å) for the BindCraft epitope patch")
+                   help="CB contiguity radius (Å) for the epitope patch")
     p.add_argument("--patch-size", type=int, default=8,
-                   help="max residues in the BindCraft epitope patch")
+                   help="max residues in the epitope patch")
     p.add_argument("--no-patch", action="store_true",
-                   help="emit the full ranked hotspot list to BindCraft (no patch reduction)")
+                   help="emit the full ranked hotspot list (no patch reduction)")
     p.add_argument("--outdir", default=str(DEFAULT_OUTDIR))
     return p
 
@@ -93,7 +93,7 @@ def main(argv: list[str] | None = None) -> int:
     _print_table([_summary_row(result, outdir)])
     print(f"\nfull hotspots ({len(result.hotspots)}): "
           f"{format_hotspot_string(result.hotspots) or '(empty)'}")
-    print(f"epitope patch -> bindcraft ({len(result.patch)}): "
+    print(f"epitope patch ({len(result.patch)}): "
           f"{format_hotspot_string(result.patch) or '(empty)'}")
     return 0
 

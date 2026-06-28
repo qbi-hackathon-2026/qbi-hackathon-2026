@@ -130,6 +130,8 @@
   .details { display: flex; gap: 16px; align-items: flex-start; }
   .detail-main { flex: 1; min-width: 0; }
   .detail-side { width: 360px; flex-shrink: 0; }
+  .details-row2 { display: flex; gap: 16px; }
+  .details-row2 .panel { flex: 1; min-width: 0; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; }
   .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
   .kv { display:grid; grid-template-columns: 150px 1fr; gap: 5px 12px; font-size: 13px; }
@@ -149,6 +151,7 @@
     .viewer-card .stage { height: 440px; }
     .details { flex-direction: column; }
     .detail-side { width: 100%; }
+    .details-row2 { flex-direction: column; }
   }
 </style>
 </head>
@@ -199,7 +202,7 @@
   <div class="legend">
     <span><span class="dot" style="background:#8c97a8"></span>Backbone / chains</span>
     <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
-    <span><span class="dot" style="background:var(--patch)"></span>Epitope patch (→ BindCraft)</span>
+    <span><span class="dot" style="background:var(--patch)"></span>Epitope patch</span>
   </div>
 
   <!-- Details below the viewers -->
@@ -213,14 +216,16 @@
         <h2>Downloads</h2>
         <div id="downloads" class="dl placeholder">—</div>
       </div>
-      <div class="panel">
-        <h2>Candidate hotspots</h2>
-        <div id="hotspot-list" class="resgrid placeholder">—</div>
-      </div>
-      <div class="panel">
-        <h2>Epitope patch</h2>
-        <div id="patch-list" class="resgrid placeholder">—</div>
-      </div>
+    </div>
+  </div>
+  <div class="details-row2">
+    <div class="panel">
+      <h2>Candidate hotspots</h2>
+      <div id="hotspot-list" class="resgrid placeholder">—</div>
+    </div>
+    <div class="panel">
+      <h2>Epitope patch</h2>
+      <div id="patch-list" class="resgrid placeholder">—</div>
     </div>
   </div>
 </main>
@@ -376,7 +381,7 @@ function renderSummary(s) {
     kv('Topology', `${esc(mp.type || '—')} · membrane-proximal ${esc(mp.membrane_proximal_terminus || '—')}`) +
     domainsRows +
     kv('Hotspots', `${c.hotspots ?? 0} candidate residues`) +
-    kv('Epitope patch', `${c.patch ?? 0} residues → BindCraft`);
+    kv('Epitope patch', `${c.patch ?? 0} residues`);
 
   // Downloads — engine emits these per target under /files/<target>/
   const t = encodeURIComponent(s.target || s.accession);
