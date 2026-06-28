@@ -162,6 +162,27 @@ def prefer_hydrophobic(
     return hydrophobic, rest
 
 
+def confidence_by_auth(structure: gemmi.Structure, target_auth_chain: str) -> dict[int, float]:
+    """Per-residue B-factor (CA atom, or all-atom mean if no CA) for the target chain.
+
+    This is a relative flexibility/disorder proxy for crystal structures, not a
+    calibrated confidence score like AlphaFold's pLDDT - lower B-factor means more
+    rigidly/consistently resolved across the crystal, not "more correct" in an
+    absolute sense. Used by the frontend's confidence-coloring viz mode.
+    """
+    chain = structure[0][target_auth_chain]
+    out = {}
+    for res in chain.get_polymer():
+        ca = res.find_atom("CA", "\0")
+        if ca is not None:
+            out[res.seqid.num] = ca.b_iso
+        else:
+            atoms = list(res)
+            if atoms:
+                out[res.seqid.num] = sum(a.b_iso for a in atoms) / len(atoms)
+    return out
+
+
 def surface_exposed_hotspots(
     structure: gemmi.Structure,
     target_auth_chain: str,

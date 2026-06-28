@@ -164,6 +164,8 @@ def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
             "avoid_other_ptm_auth_residues": avoid_ptm_auth,
             "avoid_low_plddt_auth_residues": avoid_low_plddt_auth,
             "missing_auth_residues_note": "pLDDT ≤ 50 residues treated as unobserved",
+            "confidence_metric": "plddt",
+            "confidence_by_auth_residue": [[r.auth_seq_id, round(r.plddt, 1)] for r in af_result.residues],
         }
 
         summary_path = os.path.join(OUT_DIR, f"AF-{accession}_summary.json")
@@ -267,6 +269,7 @@ def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
     avoid_disulfide_auth = sorted({e["auth_seq_num"] for e in avoid["disulfide_cysteines"] if e["auth_seq_num"] is not None})
     avoid_ptm_auth = sorted({e["auth_seq_num"] for e in avoid["other_ptms"] if e["auth_seq_num"] is not None})
     other_contacts_auth = sorted(u2a[p] for p in other_interface_contacts_unp if p in u2a)
+    confidence_auth = annotate.confidence_by_auth(full_structure, auth_chain)
     result_summary["viewer"] = {
         "pdb_id": pdb_id,
         "auth_chain": auth_chain,
@@ -280,6 +283,8 @@ def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
         "avoid_disulfide_auth_residues": avoid_disulfide_auth,
         "avoid_other_ptm_auth_residues": avoid_ptm_auth,
         "missing_auth_residues_note": "missing residues have no atoms and cannot be highlighted",
+        "confidence_metric": "bfactor",
+        "confidence_by_auth_residue": sorted(confidence_auth.items()),
     }
 
     summary_path = os.path.join(OUT_DIR, f"{pdb_id}_summary.json")

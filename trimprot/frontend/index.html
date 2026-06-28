@@ -181,13 +181,20 @@
       </div>
     </div>
     <div class="legend">
-      <span><span class="dot" style="background:#9aa1ad"></span>Backbone</span>
+      <span id="legend-backbone"><span class="dot" style="background:#cfd4dc"></span>Backbone</span>
+      <span id="legend-hydrophobic" style="display:none"><span class="dot" style="background:#d98e3e"></span>Hydrophobic</span>
+      <span id="legend-polar" style="display:none"><span class="dot" style="background:#5a8fc2"></span>Polar / charged</span>
+      <span id="legend-conf-very-high" style="display:none"><span class="dot" style="background:#0053d6"></span><span id="legend-conf-very-high-label">Very high confidence</span></span>
+      <span id="legend-conf-confident" style="display:none"><span class="dot" style="background:#65cbf3"></span><span id="legend-conf-confident-label">Confident</span></span>
+      <span id="legend-conf-low" style="display:none"><span class="dot" style="background:#ffdb13"></span><span id="legend-conf-low-label">Low confidence</span></span>
+      <span id="legend-conf-very-low" style="display:none"><span class="dot" style="background:#ff7d45"></span><span id="legend-conf-very-low-label">Very low confidence</span></span>
       <span><span class="dot" style="background:var(--avoid)"></span>Avoid (glyco / disulfide / missing)</span>
       <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
       <span><span class="dot" style="background:#7a5cff"></span>Bound partner chain</span>
       <div class="mode-toggle" id="mode-toggle">
         <button data-mode="default" class="active">Default</button>
         <button data-mode="hydrophobicity">Hydrophobicity</button>
+        <button data-mode="confidence">Confidence</button>
       </div>
     </div>
 
@@ -267,7 +274,33 @@ const loadedViewers = []; // { viewer, fileUrl, authChain, avoidSet, hotspotSet,
 const HYDROPHOBIC_RESNAMES = new Set(['ALA', 'VAL', 'LEU', 'ILE', 'MET', 'PHE', 'TRP', 'PRO', 'TYR']);
 const ALL_RESNAMES = ['ALA','ARG','ASN','ASP','CYS','GLN','GLU','GLY','HIS','ILE','LEU','LYS','MET','PHE','PRO','SER','THR','TRP','TYR','VAL'];
 
-function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, partnerChains, mode }) {
+// AlphaFold's own 4-band pLDDT confidence palette, reused for crystal B-factor too
+// (binned into relative quartiles there, since B-factor has no fixed absolute scale).
+const CONFIDENCE_COLORS = { very_high: '#0053d6', confident: '#65cbf3', low: '#ffdb13', very_low: '#ff7d45' };
+
+// Bucket a {auth_seq_id: value} confidence map into the 4 confidence bands above.
+// pLDDT uses AlphaFold's absolute thresholds; B-factor has no fixed scale so it's
+// binned into quartiles relative to this structure's own residues.
+function confidenceBuckets(confidenceByAuth, metric) {
+  const entries = Object.entries(confidenceByAuth).map(([k, v]) => [Number(k), v]);
+  const buckets = { very_high: [], confident: [], low: [], very_low: [] };
+  if (!entries.length) return buckets;
+
+  let bandFor;
+  if (metric === 'plddt') {
+    bandFor = v => v > 90 ? 'very_high' : v >= 70 ? 'confident' : v > 50 ? 'low' : 'very_low';
+  } else {
+    const values = entries.map(e => e[1]).slice().sort((a, b) => a - b);
+    const quantile = p => values[Math.min(values.length - 1, Math.floor(p * values.length))];
+    const q1 = quantile(0.25), q2 = quantile(0.5), q3 = quantile(0.75);
+    // Lower B-factor = more rigidly/consistently resolved => treated as "more confident".
+    bandFor = v => v <= q1 ? 'very_high' : v <= q2 ? 'confident' : v <= q3 ? 'low' : 'very_low';
+  }
+  for (const [auth, val] of entries) buckets[bandFor(val)].push(auth);
+  return buckets;
+}
+
+function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, partnerChains, confidenceByAuth, confidenceMetric, mode }) {
   const builder = molstar.PluginExtensions.mvs.createBuilder();
   builder.canvas({ background_color: '#171a21' });
   const structure = builder.download({ url: fileUrl }).parse({ format: 'pdb' }).modelStructure();
@@ -279,6 +312,13 @@ function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, par
   if (mode === 'hydrophobicity') {
     for (const resname of ALL_RESNAMES) {
       base.color({ color: HYDROPHOBIC_RESNAMES.has(resname) ? '#d98e3e' : '#5a8fc2', selector: { label_comp_id: resname } });
+    }
+  } else if (mode === 'confidence' && confidenceByAuth) {
+    const buckets = confidenceBuckets(confidenceByAuth, confidenceMetric);
+    for (const band of Object.keys(buckets)) {
+      if (buckets[band].length) {
+        base.color({ color: CONFIDENCE_COLORS[band], selector: buckets[band].map(n => ({ auth_asym_id: authChain, auth_seq_id: n })) });
+      }
     }
   } else {
     base.color({ color: '#cfd4dc' });
@@ -310,16 +350,41 @@ async function applyVizMode(entry, mode) {
   entry.viewer.plugin.canvas3d?.requestCameraReset();
 }
 
+const CONFIDENCE_BAND_LABELS = {
+  plddt: { veryHigh: 'pLDDT > 90', confident: 'pLDDT 70–90', low: 'pLDDT 50–70', veryLow: 'pLDDT < 50' },
+  bfactor: {
+    veryHigh: 'Lowest B-factor quartile (most rigid)', confident: '2nd B-factor quartile',
+    low: '3rd B-factor quartile', veryLow: 'Highest B-factor quartile (most flexible)',
+  },
+};
+
+function updateConfidenceLegendLabels(metric) {
+  const labels = CONFIDENCE_BAND_LABELS[metric] || CONFIDENCE_BAND_LABELS.plddt;
+  document.getElementById('legend-conf-very-high-label').textContent = labels.veryHigh;
+  document.getElementById('legend-conf-confident-label').textContent = labels.confident;
+  document.getElementById('legend-conf-low-label').textContent = labels.low;
+  document.getElementById('legend-conf-very-low-label').textContent = labels.veryLow;
+}
+
 async function setVizMode(mode) {
   vizMode = mode;
   document.querySelectorAll('#mode-toggle button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.mode === mode);
   });
+  document.getElementById('legend-backbone').style.display = mode === 'default' ? '' : 'none';
+  document.getElementById('legend-hydrophobic').style.display = mode === 'hydrophobicity' ? '' : 'none';
+  document.getElementById('legend-polar').style.display = mode === 'hydrophobicity' ? '' : 'none';
+  ['legend-conf-very-high', 'legend-conf-confident', 'legend-conf-low', 'legend-conf-very-low'].forEach(id => {
+    document.getElementById(id).style.display = mode === 'confidence' ? '' : 'none';
+  });
   await Promise.all(loadedViewers.map(entry => applyVizMode(entry, mode)));
 }
 
-async function loadStructure(viewer, fileUrl, authChain, avoidSet, hotspotSet, partnerChains) {
-  const entry = { viewer, fileUrl, authChain, avoidAuthList: [...avoidSet], hotspotAuthList: [...hotspotSet], partnerChains };
+async function loadStructure(viewer, fileUrl, authChain, avoidSet, hotspotSet, partnerChains, confidenceByAuth, confidenceMetric) {
+  const entry = {
+    viewer, fileUrl, authChain, avoidAuthList: [...avoidSet], hotspotAuthList: [...hotspotSet], partnerChains,
+    confidenceByAuth: confidenceByAuth || {}, confidenceMetric: confidenceMetric || null,
+  };
   loadedViewers.push(entry);
   await applyVizMode(entry, vizMode);
 }
@@ -454,9 +519,11 @@ async function runPipeline() {
     const v = data.viewer;
     const avoidAuth = new Set([...v.avoid_glycosylation_auth_residues, ...v.avoid_disulfide_auth_residues, ...v.avoid_other_ptm_auth_residues]);
     const hotspotAuth = new Set(v.hotspot_auth_residues);
+    const confidenceByAuth = Object.fromEntries(v.confidence_by_auth_residue || []);
+    updateConfidenceLegendLabels(v.confidence_metric);
 
-    await loadStructure(viewerOrig, `${API_BASE}/api/files/${v.original_file}`, v.auth_chain, avoidAuth, hotspotAuth, v.partner_chains);
-    await loadStructure(viewerTrim, `${API_BASE}/api/files/${v.trimmed_file}`, v.auth_chain, avoidAuth, hotspotAuth, []);
+    await loadStructure(viewerOrig, `${API_BASE}/api/files/${v.original_file}`, v.auth_chain, avoidAuth, hotspotAuth, v.partner_chains, confidenceByAuth, v.confidence_metric);
+    await loadStructure(viewerTrim, `${API_BASE}/api/files/${v.trimmed_file}`, v.auth_chain, avoidAuth, hotspotAuth, [], confidenceByAuth, v.confidence_metric);
 
     setStatus(`Done. Selected ${v.pdb_id}, chain ${v.auth_chain}.`);
   } catch (e) {
