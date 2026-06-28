@@ -19,6 +19,125 @@ uv sync
 uv run python -m trimprot.server      # then open http://127.0.0.1:8000
 ```
 
+If those commands are already familiar, you're set. If not, the next section
+walks through everything from scratch.
+
+## Run TrimProt on your own computer (beginner-friendly)
+
+This guide assumes you've **never used a terminal before**. Follow the steps for
+your computer (Mac **or** Windows) in order. You'll only do steps 1–4 once; after
+that, starting the app is just steps 5–6.
+
+A "terminal" (also called a "command line") is a window where you type commands
+instead of clicking. We'll open it, paste a few lines, and press Enter after each.
+
+> **Tip:** to paste into a terminal, use **Cmd+V** on Mac or **Ctrl+V** (or
+> right-click → Paste) on Windows. Press **Enter** after each command and wait for
+> it to finish before typing the next one.
+
+### On a Mac
+
+**1. Open the Terminal.**
+Press **Cmd + Space**, type `Terminal`, and press **Enter**. A window opens — this
+is where every command below goes.
+
+**2. Install Homebrew** (a tool that installs other tools). Paste this line and
+press Enter:
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+It may ask for your Mac password (typing shows nothing — that's normal) and take a
+few minutes. When it finishes, **close the Terminal and open a new one** (Cmd+Space
+→ Terminal) so the new tool is available.
+
+**3. Install `git` and `uv`** (git downloads the code; uv runs the app). Paste:
+```bash
+brew install git uv
+```
+
+**4. Download the TrimProt code.** Paste these two lines:
+```bash
+git clone https://github.com/qbi-hackathon-2026/qbi-hackathon-2026.git
+cd qbi-hackathon-2026/trimprot
+```
+
+**5. Set up the app** (only needs to succeed once; downloads what it needs):
+```bash
+uv sync
+```
+
+**6. Start the app:**
+```bash
+uv run python -m trimprot.server
+```
+Leave this window open. When you see a line ending in
+`Uvicorn running on http://127.0.0.1:8000`, the app is ready.
+
+**7. Open it.** Go to your web browser and visit **http://127.0.0.1:8000** —
+TrimProt loads. To stop the app later, click the Terminal window and press
+**Ctrl + C**.
+
+### On Windows
+
+**1. Open PowerShell.**
+Click the **Start** menu, type `PowerShell`, and press **Enter**. A blue window
+opens — this is where every command below goes.
+
+**2. Install `git` and `uv`** (git downloads the code; uv runs the app). Paste each
+line and press Enter:
+```powershell
+winget install --id Git.Git -e
+winget install --id astral-sh.uv -e
+```
+If Windows asks for permission, allow it. When both finish, **close PowerShell and
+open a new one** (Start → PowerShell) so the new tools are available.
+
+**3. Download the TrimProt code.** Paste these two lines:
+```powershell
+git clone https://github.com/qbi-hackathon-2026/qbi-hackathon-2026.git
+cd qbi-hackathon-2026\trimprot
+```
+
+**4. Set up the app** (only needs to succeed once; downloads what it needs):
+```powershell
+uv sync
+```
+
+**5. Start the app:**
+```powershell
+uv run python -m trimprot.server
+```
+Leave this window open. When you see a line ending in
+`Uvicorn running on http://127.0.0.1:8000`, the app is ready.
+
+**6. Open it.** Go to your web browser and visit **http://127.0.0.1:8000** —
+TrimProt loads. To stop the app later, click the PowerShell window and press
+**Ctrl + C**.
+
+### Starting it again next time
+
+You don't repeat the install steps. Open a terminal (Terminal on Mac / PowerShell
+on Windows) and run:
+```bash
+cd qbi-hackathon-2026/trimprot
+uv run python -m trimprot.server
+```
+Then open **http://127.0.0.1:8000** again.
+
+### If something goes wrong
+
+- **`command not found` / `not recognized`** right after installing — you forgot
+  to open a **new** terminal window. Close it, open a fresh one, and try again.
+- **The browser says it can't connect** — make sure the terminal from the start
+  step is still open and still shows the `Uvicorn running…` line. If you closed it,
+  run the start command again.
+- **A target shows an error** — some proteins have no usable structure; try a
+  well-known one like `EGFR` to confirm the app itself is working.
+
+> **Note on hosting:** these steps run TrimProt **on your own computer only** —
+> the address `http://127.0.0.1:8000` works just for you, not for others on the
+> internet. Putting it online (cloud hosting) is a separate, more advanced setup.
+
 ## Three ways to use it
 
 | Interface | Command | For |
