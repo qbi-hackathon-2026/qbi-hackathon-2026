@@ -13,12 +13,91 @@ from __future__ import annotations
 import os
 import re
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
+import requests as _requests
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastmcp import Client
 from pydantic import BaseModel
+
+PROTTER_URL = "https://protter.ethz.ch/create"
+
+# Matches the web app's default styles (signal peptide, disulfide bonds, variants, PTMs).
+# Style descriptors are the URL parameter keys; UniProt feature codes are the values.
+# Special chars are left unencoded — Protter's server parses them raw.
+_SVG_PAD_TOP    = 5
+_SVG_PAD_BOTTOM = 5
+_SVG_PAD_LEFT   = 5
+_SVG_PAD_RIGHT  = 45  # legend text anchors at rightmost circle; text overflows right
+
+
+def _crop_svg(svg_bytes: bytes) -> bytes:
+    """Rewrite the SVG viewBox to the tight content bounding box + padding.
+
+    Skips <defs> children (pattern/glyph definitions) since they are not
+    directly rendered and their coordinates are relative to their own viewport.
+    """
+    try:
+        ET.register_namespace("", "http://www.w3.org/2000/svg")
+        ET.register_namespace("xlink", "http://www.w3.org/1999/xlink")
+        root = ET.fromstring(svg_bytes)
+        SVG_NS = "http://www.w3.org/2000/svg"
+        defs_tag = f"{{{SVG_NS}}}defs"
+
+        mins_x, mins_y, maxs_x, maxs_y = [], [], [], []
+
+        def _walk(el: ET.Element) -> None:
+            for child in el:
+                if child.tag == defs_tag:
+                    continue  # skip glyph/pattern definitions
+                tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+                try:
+                    if tag == "circle":
+                        cx, cy, r = float(child.get("cx", 0)), float(child.get("cy", 0)), float(child.get("r", 0))
+                        mins_x.append(cx - r); maxs_x.append(cx + r)
+                        mins_y.append(cy - r); maxs_y.append(cy + r)
+                    elif tag == "rect":
+                        x, y = float(child.get("x", 0)), float(child.get("y", 0))
+                        w, h = float(child.get("width", 0)), float(child.get("height", 0))
+                        mins_x.append(x); maxs_x.append(x + w)
+                        mins_y.append(y); maxs_y.append(y + h)
+                    elif tag in ("text", "use"):
+                        if child.get("x") is None or child.get("y") is None:
+                            continue  # skip hidden internal data elements
+                        x, y = float(child.get("x")), float(child.get("y"))
+                        mins_x.append(x); maxs_x.append(x)
+                        mins_y.append(y); maxs_y.append(y)
+                except (TypeError, ValueError):
+                    pass
+                _walk(child)
+
+        _walk(root)
+
+        if not mins_x:
+            return svg_bytes
+
+        vx = min(mins_x) - _SVG_PAD_LEFT
+        vy = min(mins_y) - _SVG_PAD_TOP
+        vw = max(maxs_x) - vx + _SVG_PAD_RIGHT
+        vh = max(maxs_y) - vy + _SVG_PAD_BOTTOM
+
+        root.set("viewBox", f"{vx:.2f} {vy:.2f} {vw:.2f} {vh:.2f}")
+        # Remove fixed pt dimensions so the browser scales from the viewBox aspect ratio.
+        root.attrib.pop("width", None)
+        root.attrib.pop("height", None)
+        return ET.tostring(root, encoding="unicode", xml_declaration=False).encode()
+    except Exception:
+        return svg_bytes  # fall back to unmodified SVG on any parse error
+
+
+_PROTTER_DEFAULT_STYLES = (
+    "&n:signal peptide,fc:red,bc:red=UP.SIGNAL"
+    "&n:disulfide bonds,s:box,fc:greenyellow,bc:greenyellow=UP.DISULFID"
+    "&n:variants,s:diamond,fc:orange,bc:orange=UP.VARIANT"
+    "&n:PTMs,s:box,fc:forestgreen,bc:forestgreen=UP.CARBOHYD,UP.MOD_RES"
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUTS = ROOT / "outputs"
@@ -97,6 +176,24 @@ async def run(target: str):
             "trimmed": f"/files/{name}/trimmed.pdb",
         },
     }
+
+
+@app.get("/api/protter/{accession}")
+def protter(accession: str):
+    """Proxy the Protter topology SVG for a UniProt accession."""
+    if not _ACCESSION.match(accession.upper()):
+        return JSONResponse({"error": "invalid accession"}, status_code=400)
+    try:
+        url = (f"{PROTTER_URL}?up={accession.upper()}&tm=auto"
+               f"{_PROTTER_DEFAULT_STYLES}&legend&format=svg")
+        resp = _requests.get(url, timeout=15)
+        resp.raise_for_status()
+        return Response(content=_crop_svg(resp.content), media_type="image/svg+xml")
+    except _requests.HTTPError as exc:
+        return JSONResponse({"error": f"Protter returned {exc.response.status_code}"},
+                            status_code=502)
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=502)
 
 
 class ChatTurn(BaseModel):
