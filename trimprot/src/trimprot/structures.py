@@ -126,7 +126,10 @@ def _overlap(a: Range, s: int, e: int) -> int:
 
 
 def fetch_best_structures(accession: str) -> list[Candidate]:
-    data = get_json(PDBE_BEST.format(acc=accession))
+    # PDBe returns 404 when it has no structures indexed for the accession
+    # (e.g. TARM1/B6A8C7). Treat that as "no candidates" so the caller raises a
+    # clean "no PDB structures found" error instead of a raw HTTP 404.
+    data = get_json(PDBE_BEST.format(acc=accession), allow_404=True)
     items = data.get(accession, []) if data else []
     out = []
     for it in items:

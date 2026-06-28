@@ -62,7 +62,14 @@ async def run(target: str):
         async with Client(mcp) as client:
             result = await client.call_tool("prepare_target", args)
     except Exception as exc:  # surface a clean error to the UI
-        return JSONResponse({"error": str(exc)}, status_code=400)
+        msg = str(exc)
+        # Strip the MCP wrapper ("Error calling tool 'prepare_target': ...").
+        msg = re.sub(r"^Error calling tool '[^']*':\s*", "", msg)
+        if "no PDB structures found" in msg:
+            msg = ("No structures are available for this target — PDBe/RCSB have "
+                   "no experimental or predicted models indexed for it, so there is "
+                   "nothing to trim. Try a different target.")
+        return JSONResponse({"error": msg}, status_code=400)
 
     data = result.data or {}
     summary = data.get("summary", {})
