@@ -10,14 +10,12 @@
 
 </div>
 
-Give BindScout a protein — a gene name, protein name, or UniProt accession — and it
+Give BindScout a protein (a gene name, protein name, or UniProt accession) and it
 prepares a design-ready target: it resolves the UniProt entry, finds and ranks
 structures, trims to the relevant domain, identifies candidate **hotspot**
 residues and an epitope **patch**, builds an **avoid** set, and renders it all in
 an interactive 3D viewer. When no suitable experimental structure exists, it falls
-back to the **AlphaFold** model automatically.
-
-All structural-biology logic is **pure and deterministic** — no LLM calls.
+back to the **AlphaFold Database** automatically.
 
 ## Installation
 
@@ -114,9 +112,7 @@ Then:
    hover, and a "focus patch" button.
 3. **Download** the prepared artifacts from the page (see [Output](#output)).
 
-To stop the app, click its terminal window and press **Ctrl + C**. To start it
-again later, reopen a terminal, `cd qbi-hackathon-2026/bindscout`, and run the
-start command again.
+To stop the app, click its terminal window and press **Ctrl + C**.
 
 > **Note:** `http://127.0.0.1:8000` runs on your own computer only — it's not
 > reachable by others on the internet. Putting it online is a separate, more

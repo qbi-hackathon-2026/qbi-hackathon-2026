@@ -22,12 +22,12 @@ for the frontend.
 ```bash
 cd bindscout
 uv sync                                 # creates an isolated env (Python >=3.11)
-uv run python -m bindscout.server       # then open http://127.0.0.1:8000/
+uv run python -m bindscout.server        # then open http://127.0.0.1:8000/
 ```
 
 `uv` downloads the right Python automatically, so you don't need a matching
 system interpreter. See the [root README](README.md) for the interfaces (web app
-/ CLI / MCP) and the pipeline architecture.
+/ CLI / MCP).
 
 ## Running tests
 
