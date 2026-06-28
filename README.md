@@ -15,9 +15,7 @@ prepares a design-ready target: it resolves the UniProt entry, finds and ranks
 structures, trims to the relevant domain, identifies candidate **hotspot**
 residues and an epitope **patch**, builds an **avoid** set, and renders it all in
 an interactive 3D viewer. When no suitable experimental structure exists, it falls
-back to the **AlphaFold** model automatically.
-
-All structural-biology logic is **pure and deterministic** — no LLM calls.
+back to the **AlphaFold Database** automatically.
 
 ## Installation
 
