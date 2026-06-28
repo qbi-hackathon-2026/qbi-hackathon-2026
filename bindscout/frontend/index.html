@@ -105,6 +105,16 @@
   .protein-head h2.pname { font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
   .protein-head .pgenes { color: var(--muted); font-size: 14px; }
   .protein-head .pacc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--chip); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; font-size: 13px; }
+  .loc-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 3px 10px; border: 1px solid; }
+  .loc-tm-ecd  { background: #dcfce7; border-color: #86efac; color: #166534; }
+  .loc-tm      { background: #fef9c3; border-color: #fde047; color: #854d0e; }
+  .loc-secreted { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+  .loc-intracellular { background: #f3f4f6; border-color: #d1d5db; color: #374151; }
+  .loc-other, .loc-unknown { background: var(--chip); border-color: var(--border); color: var(--muted); }
+  html[data-theme="dark"] .loc-tm-ecd  { background: #052e16; border-color: #166534; color: #86efac; }
+  html[data-theme="dark"] .loc-tm      { background: #1c1304; border-color: #854d0e; color: #fde047; }
+  html[data-theme="dark"] .loc-secreted { background: #0c1a33; border-color: #1e40af; color: #93c5fd; }
+  html[data-theme="dark"] .loc-intracellular { background: #1f2937; border-color: #374151; color: #9ca3af; }
   .protein-head .pfacts { color: var(--muted); font-size: 13px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
   .protein-head .pfacts .org { font-style: italic; }
   .protein-head .plinks { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
@@ -361,6 +371,15 @@ function updatePatchFocusUI() {
 // ── Protein header ────────────────────────────────────────────────────────
 const LINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>';
 
+const LOC_CSS = {
+  transmembrane_with_ecd: 'loc-tm-ecd',
+  transmembrane:          'loc-tm',
+  secreted:               'loc-secreted',
+  intracellular:          'loc-intracellular',
+  other:                  'loc-other',
+  unknown:                'loc-unknown',
+};
+
 function renderProteinHead(s, sel) {
   const acc = s.accession, pdb = (s.structure || {}).chosen_pdb || '';
   const genes = sel && sel.gene_names && sel.gene_names.length ? esc(sel.gene_names.slice(0, 4).join(', ')) : '';
@@ -370,6 +389,14 @@ function renderProteinHead(s, sel) {
   const ecd = (s.topology || {}).ecd_ranges_uniprot || [];
   if (ecd.length) facts.push('ECD ' + ecd.map(r => `${r[0]}–${r[1]}`).join(', '));
   if (pdb) { const st = s.structure || {}; facts.push(`PDB ${esc(pdb.toUpperCase())}${st.resolution ? ` · ${st.resolution} Å` : ''}`); }
+
+  const loc = s.localization || {};
+  const locCss = LOC_CSS[loc.kind] || 'loc-unknown';
+  const locLabel = loc.label || '';
+  const locTip = (loc.subcellular_locations || []).join(' · ');
+  const locBadge = locLabel
+    ? `<span class="loc-badge ${locCss}" title="${esc(locTip)}">${esc(locLabel)}</span>`
+    : '';
 
   const links = [
     ['UniProt', `https://www.uniprot.org/uniprotkb/${encodeURIComponent(acc)}/entry`],
@@ -382,6 +409,7 @@ function renderProteinHead(s, sel) {
       <h2 class="pname">${esc(s.protein_name || s.target || acc)}</h2>
       ${genes ? `<span class="pgenes">${genes}</span>` : ''}
       <span class="pacc">${esc(acc)}</span>
+      ${locBadge}
     </div>
     <div class="pfacts">${facts.join('<span aria-hidden="true">·</span>')}</div>
     <div class="plinks">

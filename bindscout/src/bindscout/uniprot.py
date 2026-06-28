@@ -62,6 +62,7 @@ class UniProtRecord:
     sequence: str
     function: str = ""
     features: list[Feature] = field(default_factory=list)
+    subcellular_locations: list[str] = field(default_factory=list)
 
     def of(self, kind: str) -> list[Feature]:
         return [f for f in self.features if f.kind == kind]
@@ -109,6 +110,19 @@ def _function_text(entry: dict) -> str:
     return ""
 
 
+def _subcellular_locations(entry: dict) -> list[str]:
+    """Return subcellular location values from UniProt SUBCELLULAR LOCATION comments."""
+    for c in entry.get("comments", []) or []:
+        if c.get("commentType") == "SUBCELLULAR LOCATION":
+            locs = []
+            for loc in (c.get("subcellularLocations") or []):
+                val = (loc.get("location") or {}).get("value")
+                if val:
+                    locs.append(val)
+            return locs
+    return []
+
+
 def _record_from_entry(entry: dict) -> UniProtRecord:
     acc = entry["primaryAccession"]
     genes = entry.get("genes") or []
@@ -123,6 +137,7 @@ def _record_from_entry(entry: dict) -> UniProtRecord:
         sequence=(entry.get("sequence") or {}).get("value", ""),
         function=_function_text(entry),
         features=_parse_features(entry.get("features", [])),
+        subcellular_locations=_subcellular_locations(entry),
     )
 
 
