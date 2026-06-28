@@ -55,6 +55,13 @@
 
   .search-section { max-width: 720px; margin: 26px 0 0; }
 
+  /* ── Suggestion hints under the search bar ────────────────────────────── */
+  #search-hints { margin: 12px 2px 0; font-size: 13px; color: var(--muted); }
+  #search-hints.hide { display: none; }
+  .hint-link { background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--accent); cursor: pointer; }
+  .hint-link:hover { text-decoration: underline; }
+  .hint-link:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+
   /* ── Search box + typeahead ───────────────────────────────────────────── */
   #search-wrap { position: relative; width: 100%; }
   .search-field { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; box-shadow: var(--shadow); transition: border-color .15s, box-shadow .15s; }
@@ -172,6 +179,9 @@
       </div>
       <div id="suggestions" role="listbox"></div>
     </div>
+    <p id="search-hints">Want a suggestion? Try
+      <button type="button" class="hint-link" data-term="insulin">Insulin</button> or
+      <button type="button" class="hint-link" data-term="EGFR">EGFR</button>.</p>
   </div>
 </header>
 
@@ -424,6 +434,7 @@ async function loadViewer(stageId, url, ext) {
 
 async function runPipeline() {
   if (!selectedTarget) return;
+  $('search-hints').classList.add('hide');   // a target is loading; hide the "try…" hint
   $('results').style.display = 'block';
   setStatus(`Running pipeline for <strong>${esc(selectedTarget)}</strong> (UniProt → PDB ranking → trim → annotate)… <span style="opacity:.7">~10–30s</span>`);
   leftView = rightView = null;
@@ -515,6 +526,31 @@ function selectResult(c) {
   hideSuggestions(); searchResults = []; $('search-input').blur();
   runPipeline();
 }
+
+// Suggestion hint click: resolve the term via the same /api/search the typeahead
+// uses, then route its top hit through selectResult() — identical to the user
+// typing the term and clicking the first result.
+async function pickSuggestion(term) {
+  const hints = $('search-hints');
+  const links = hints.querySelectorAll('.hint-link');
+  links.forEach(l => l.disabled = true);
+  $('search-input').value = term;
+  $('search-spinner').style.display = 'block';
+  try {
+    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(term)}`);
+    if (!res.ok) throw new Error('bad status');
+    const results = await res.json();
+    const top = Array.isArray(results) ? results[0] : null;
+    if (!top) throw new Error(`no result for ${term}`);
+    selectResult(top);
+  } catch (e) {
+    $('search-input').value = '';
+    showState(`Couldn't load "${esc(term)}". Try again in a moment.`, 'error');
+  } finally {
+    $('search-spinner').style.display = 'none';
+    links.forEach(l => l.disabled = false);
+  }
+}
 async function doSearch(q) {
   const query = (q || '').trim();
   if (query.length < 2) { searchResults = []; hideSuggestions(); return; }
@@ -546,6 +582,7 @@ function onSearchKeyDown(e) {
 }
 function clearSearch() {
   const i = $('search-input'); i.value = ''; searchResults = []; hideSuggestions();
+  $('search-hints').classList.remove('hide');   // back to the bare search bar
   $('clear-btn').style.display = 'none'; i.focus();
 }
 
@@ -568,6 +605,10 @@ window.addEventListener('load', () => {
   input.addEventListener('focus', () => { if (searchResults.length) $('suggestions').style.display = 'block'; });
   clearBtn.addEventListener('click', clearSearch);
   document.addEventListener('mousedown', e => { if (!$('search-wrap').contains(e.target)) hideSuggestions(); });
+  $('search-hints').addEventListener('click', e => {
+    const link = e.target.closest('.hint-link');
+    if (link && !link.disabled) pickSuggestion(link.dataset.term);
+  });
   $('focus-patch').addEventListener('click', focusPatch);
 
   window.addEventListener('resize', () => { if (leftView) leftView.resize(); if (rightView) rightView.resize(); });
