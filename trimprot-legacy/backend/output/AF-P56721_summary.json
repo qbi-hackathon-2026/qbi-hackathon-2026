@@ -1,0 +1,1184 @@
+{
+  "target": {
+    "uniprot_accession": "P56721",
+    "uniprot_id": "COLL_DROME",
+    "isoform": "Canonical sequence COLL_DROME (575 aa); AlphaFold model used (no crystal structure with adequate ECD coverage found)."
+  },
+  "extracellular_domain": {
+    "start": 1,
+    "end": 575,
+    "trimming_decision": {
+      "trimmed": false,
+      "reason": "No transmembrane region annotated; target may already be extracellular."
+    }
+  },
+  "structure_selection": {
+    "chosen_pdb_id": null,
+    "resolution": null,
+    "ecd_coverage": null,
+    "has_known_partner": false,
+    "rank_score": null,
+    "reason": "No crystal structure with adequate ECD coverage found (0 candidates examined); falling back to AlphaFold prediction.",
+    "top_alternatives": []
+  },
+  "trimming": {
+    "auth_chain": "A",
+    "residues_in_original_chain": 575,
+    "residues_kept": 575,
+    "residues_trimmed_away": 0,
+    "missing_unresolved_label_positions": []
+  },
+  "avoid_residues": {
+    "glycosylation_sites": [],
+    "disulfide_cysteines": [],
+    "other_ptms": [],
+    "missing_unresolved": [
+      {
+        "unp_position": 1
+      },
+      {
+        "unp_position": 2
+      },
+      {
+        "unp_position": 3
+      },
+      {
+        "unp_position": 4
+      },
+      {
+        "unp_position": 5
+      },
+      {
+        "unp_position": 6
+      },
+      {
+        "unp_position": 7
+      },
+      {
+        "unp_position": 8
+      },
+      {
+        "unp_position": 9
+      },
+      {
+        "unp_position": 10
+      },
+      {
+        "unp_position": 11
+      },
+      {
+        "unp_position": 12
+      },
+      {
+        "unp_position": 13
+      },
+      {
+        "unp_position": 14
+      },
+      {
+        "unp_position": 15
+      },
+      {
+        "unp_position": 16
+      },
+      {
+        "unp_position": 17
+      },
+      {
+        "unp_position": 18
+      },
+      {
+        "unp_position": 19
+      },
+      {
+        "unp_position": 20
+      },
+      {
+        "unp_position": 21
+      },
+      {
+        "unp_position": 22
+      },
+      {
+        "unp_position": 23
+      },
+      {
+        "unp_position": 24
+      },
+      {
+        "unp_position": 25
+      },
+      {
+        "unp_position": 26
+      },
+      {
+        "unp_position": 27
+      },
+      {
+        "unp_position": 28
+      },
+      {
+        "unp_position": 29
+      },
+      {
+        "unp_position": 30
+      },
+      {
+        "unp_position": 31
+      },
+      {
+        "unp_position": 32
+      },
+      {
+        "unp_position": 33
+      },
+      {
+        "unp_position": 34
+      },
+      {
+        "unp_position": 35
+      },
+      {
+        "unp_position": 36
+      },
+      {
+        "unp_position": 37
+      },
+      {
+        "unp_position": 38
+      },
+      {
+        "unp_position": 39
+      },
+      {
+        "unp_position": 40
+      },
+      {
+        "unp_position": 41
+      },
+      {
+        "unp_position": 42
+      },
+      {
+        "unp_position": 43
+      },
+      {
+        "unp_position": 44
+      },
+      {
+        "unp_position": 45
+      },
+      {
+        "unp_position": 46
+      },
+      {
+        "unp_position": 47
+      },
+      {
+        "unp_position": 48
+      },
+      {
+        "unp_position": 49
+      },
+      {
+        "unp_position": 50
+      },
+      {
+        "unp_position": 51
+      },
+      {
+        "unp_position": 52
+      },
+      {
+        "unp_position": 53
+      },
+      {
+        "unp_position": 54
+      },
+      {
+        "unp_position": 55
+      },
+      {
+        "unp_position": 56
+      },
+      {
+        "unp_position": 57
+      },
+      {
+        "unp_position": 59
+      },
+      {
+        "unp_position": 267
+      },
+      {
+        "unp_position": 268
+      },
+      {
+        "unp_position": 269
+      },
+      {
+        "unp_position": 270
+      },
+      {
+        "unp_position": 271
+      },
+      {
+        "unp_position": 272
+      },
+      {
+        "unp_position": 273
+      },
+      {
+        "unp_position": 274
+      },
+      {
+        "unp_position": 275
+      },
+      {
+        "unp_position": 276
+      },
+      {
+        "unp_position": 277
+      },
+      {
+        "unp_position": 278
+      },
+      {
+        "unp_position": 279
+      },
+      {
+        "unp_position": 280
+      },
+      {
+        "unp_position": 281
+      },
+      {
+        "unp_position": 282
+      },
+      {
+        "unp_position": 283
+      },
+      {
+        "unp_position": 284
+      },
+      {
+        "unp_position": 285
+      },
+      {
+        "unp_position": 286
+      },
+      {
+        "unp_position": 287
+      },
+      {
+        "unp_position": 288
+      },
+      {
+        "unp_position": 289
+      },
+      {
+        "unp_position": 290
+      },
+      {
+        "unp_position": 291
+      },
+      {
+        "unp_position": 292
+      },
+      {
+        "unp_position": 293
+      },
+      {
+        "unp_position": 294
+      },
+      {
+        "unp_position": 295
+      },
+      {
+        "unp_position": 434
+      },
+      {
+        "unp_position": 435
+      },
+      {
+        "unp_position": 436
+      },
+      {
+        "unp_position": 437
+      },
+      {
+        "unp_position": 438
+      },
+      {
+        "unp_position": 439
+      },
+      {
+        "unp_position": 440
+      },
+      {
+        "unp_position": 442
+      },
+      {
+        "unp_position": 443
+      },
+      {
+        "unp_position": 444
+      },
+      {
+        "unp_position": 445
+      },
+      {
+        "unp_position": 446
+      },
+      {
+        "unp_position": 447
+      },
+      {
+        "unp_position": 448
+      },
+      {
+        "unp_position": 449
+      },
+      {
+        "unp_position": 450
+      },
+      {
+        "unp_position": 451
+      },
+      {
+        "unp_position": 452
+      },
+      {
+        "unp_position": 453
+      },
+      {
+        "unp_position": 454
+      },
+      {
+        "unp_position": 455
+      },
+      {
+        "unp_position": 456
+      },
+      {
+        "unp_position": 457
+      },
+      {
+        "unp_position": 458
+      },
+      {
+        "unp_position": 459
+      },
+      {
+        "unp_position": 460
+      },
+      {
+        "unp_position": 461
+      },
+      {
+        "unp_position": 462
+      },
+      {
+        "unp_position": 463
+      },
+      {
+        "unp_position": 464
+      },
+      {
+        "unp_position": 465
+      },
+      {
+        "unp_position": 466
+      },
+      {
+        "unp_position": 467
+      },
+      {
+        "unp_position": 468
+      },
+      {
+        "unp_position": 469
+      },
+      {
+        "unp_position": 470
+      },
+      {
+        "unp_position": 471
+      },
+      {
+        "unp_position": 472
+      },
+      {
+        "unp_position": 473
+      },
+      {
+        "unp_position": 474
+      },
+      {
+        "unp_position": 475
+      },
+      {
+        "unp_position": 476
+      },
+      {
+        "unp_position": 477
+      },
+      {
+        "unp_position": 478
+      },
+      {
+        "unp_position": 479
+      },
+      {
+        "unp_position": 480
+      },
+      {
+        "unp_position": 481
+      },
+      {
+        "unp_position": 482
+      },
+      {
+        "unp_position": 483
+      },
+      {
+        "unp_position": 484
+      },
+      {
+        "unp_position": 485
+      },
+      {
+        "unp_position": 486
+      },
+      {
+        "unp_position": 487
+      },
+      {
+        "unp_position": 488
+      },
+      {
+        "unp_position": 489
+      },
+      {
+        "unp_position": 490
+      },
+      {
+        "unp_position": 491
+      },
+      {
+        "unp_position": 492
+      },
+      {
+        "unp_position": 493
+      },
+      {
+        "unp_position": 494
+      },
+      {
+        "unp_position": 495
+      },
+      {
+        "unp_position": 496
+      },
+      {
+        "unp_position": 497
+      },
+      {
+        "unp_position": 498
+      },
+      {
+        "unp_position": 499
+      },
+      {
+        "unp_position": 500
+      },
+      {
+        "unp_position": 501
+      },
+      {
+        "unp_position": 502
+      },
+      {
+        "unp_position": 503
+      },
+      {
+        "unp_position": 504
+      },
+      {
+        "unp_position": 505
+      },
+      {
+        "unp_position": 506
+      },
+      {
+        "unp_position": 507
+      },
+      {
+        "unp_position": 508
+      },
+      {
+        "unp_position": 509
+      },
+      {
+        "unp_position": 510
+      },
+      {
+        "unp_position": 511
+      },
+      {
+        "unp_position": 512
+      },
+      {
+        "unp_position": 513
+      },
+      {
+        "unp_position": 514
+      },
+      {
+        "unp_position": 515
+      },
+      {
+        "unp_position": 516
+      },
+      {
+        "unp_position": 517
+      },
+      {
+        "unp_position": 518
+      },
+      {
+        "unp_position": 519
+      },
+      {
+        "unp_position": 520
+      },
+      {
+        "unp_position": 521
+      },
+      {
+        "unp_position": 522
+      },
+      {
+        "unp_position": 523
+      },
+      {
+        "unp_position": 524
+      },
+      {
+        "unp_position": 525
+      },
+      {
+        "unp_position": 526
+      },
+      {
+        "unp_position": 527
+      },
+      {
+        "unp_position": 528
+      },
+      {
+        "unp_position": 529
+      },
+      {
+        "unp_position": 530
+      },
+      {
+        "unp_position": 531
+      },
+      {
+        "unp_position": 532
+      },
+      {
+        "unp_position": 533
+      },
+      {
+        "unp_position": 534
+      },
+      {
+        "unp_position": 535
+      },
+      {
+        "unp_position": 536
+      },
+      {
+        "unp_position": 537
+      },
+      {
+        "unp_position": 538
+      },
+      {
+        "unp_position": 539
+      },
+      {
+        "unp_position": 540
+      },
+      {
+        "unp_position": 541
+      },
+      {
+        "unp_position": 542
+      },
+      {
+        "unp_position": 543
+      },
+      {
+        "unp_position": 544
+      },
+      {
+        "unp_position": 545
+      },
+      {
+        "unp_position": 546
+      },
+      {
+        "unp_position": 547
+      },
+      {
+        "unp_position": 548
+      },
+      {
+        "unp_position": 549
+      },
+      {
+        "unp_position": 550
+      },
+      {
+        "unp_position": 551
+      },
+      {
+        "unp_position": 552
+      },
+      {
+        "unp_position": 553
+      },
+      {
+        "unp_position": 554
+      },
+      {
+        "unp_position": 555
+      },
+      {
+        "unp_position": 556
+      },
+      {
+        "unp_position": 557
+      },
+      {
+        "unp_position": 558
+      },
+      {
+        "unp_position": 559
+      },
+      {
+        "unp_position": 560
+      },
+      {
+        "unp_position": 561
+      },
+      {
+        "unp_position": 562
+      },
+      {
+        "unp_position": 563
+      },
+      {
+        "unp_position": 564
+      },
+      {
+        "unp_position": 565
+      },
+      {
+        "unp_position": 566
+      },
+      {
+        "unp_position": 567
+      },
+      {
+        "unp_position": 568
+      },
+      {
+        "unp_position": 569
+      },
+      {
+        "unp_position": 570
+      },
+      {
+        "unp_position": 571
+      },
+      {
+        "unp_position": 572
+      },
+      {
+        "unp_position": 573
+      },
+      {
+        "unp_position": 574
+      },
+      {
+        "unp_position": 575
+      }
+    ],
+    "low_plddt": [
+      {
+        "unp_position": 58,
+        "auth_seq_num": 58,
+        "plddt": 52.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 60,
+        "auth_seq_num": 60,
+        "plddt": 59.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 61,
+        "auth_seq_num": 61,
+        "plddt": 61.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 115,
+        "auth_seq_num": 115,
+        "plddt": 67.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 116,
+        "auth_seq_num": 116,
+        "plddt": 63.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 117,
+        "auth_seq_num": 117,
+        "plddt": 66.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 262,
+        "auth_seq_num": 262,
+        "plddt": 59.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 263,
+        "auth_seq_num": 263,
+        "plddt": 62.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 264,
+        "auth_seq_num": 264,
+        "plddt": 54.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 265,
+        "auth_seq_num": 265,
+        "plddt": 60.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 266,
+        "auth_seq_num": 266,
+        "plddt": 54.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 296,
+        "auth_seq_num": 296,
+        "plddt": 57.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 384,
+        "auth_seq_num": 384,
+        "plddt": 66.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 385,
+        "auth_seq_num": 385,
+        "plddt": 59.3,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 386,
+        "auth_seq_num": 386,
+        "plddt": 55.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 387,
+        "auth_seq_num": 387,
+        "plddt": 53.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 388,
+        "auth_seq_num": 388,
+        "plddt": 53.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 389,
+        "auth_seq_num": 389,
+        "plddt": 57.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 390,
+        "auth_seq_num": 390,
+        "plddt": 68.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 431,
+        "auth_seq_num": 431,
+        "plddt": 64.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 432,
+        "auth_seq_num": 432,
+        "plddt": 57.3,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 433,
+        "auth_seq_num": 433,
+        "plddt": 52.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 441,
+        "auth_seq_num": 441,
+        "plddt": 50.6,
+        "reason": "alphafold_low_plddt<70"
+      }
+    ],
+    "counts": {
+      "glycosylation_sites": 0,
+      "disulfide_cysteines": 0,
+      "other_ptms": 0,
+      "missing_unresolved": 228,
+      "low_plddt": 23
+    }
+  },
+  "hotspots": {
+    "source": "inferred surface-exposed residues (AlphaFold model v6; pLDDT masking applied, mean ECD pLDDT=69.7)",
+    "partner_chains": [],
+    "candidate_residues_unp": [
+      62,
+      76,
+      81,
+      94,
+      95,
+      111,
+      112,
+      118,
+      119,
+      133,
+      134,
+      135,
+      139,
+      150,
+      151,
+      160,
+      161,
+      162,
+      163,
+      164,
+      178,
+      179,
+      181,
+      182,
+      183,
+      184,
+      185,
+      187,
+      190,
+      191,
+      200,
+      201,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      238,
+      239,
+      240,
+      246,
+      254,
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      261,
+      297,
+      305,
+      312,
+      314,
+      316,
+      326,
+      327,
+      334,
+      342,
+      343,
+      345,
+      353,
+      355,
+      356,
+      358,
+      359,
+      367,
+      368,
+      373,
+      374,
+      375,
+      383,
+      391,
+      392,
+      393,
+      395,
+      396,
+      399,
+      403,
+      404,
+      405,
+      406,
+      407,
+      408,
+      409,
+      410,
+      412,
+      413,
+      414,
+      417,
+      418,
+      421,
+      422,
+      424,
+      425,
+      426,
+      427,
+      428,
+      429,
+      430
+    ],
+    "count": 103
+  },
+  "alphafold_fallback": true,
+  "alphafold_version": 6,
+  "alphafold_model_url": "https://alphafold.ebi.ac.uk/files/AF-P56721-F1-model_v6.cif",
+  "alphafold_ecd_mean_plddt": 69.71,
+  "alphafold_ecd_n_low_plddt": 23,
+  "alphafold_ecd_n_unobserved": 228,
+  "alphafold_low_plddt_ranges": [
+    [
+      58,
+      58
+    ],
+    [
+      60,
+      61
+    ],
+    [
+      115,
+      117
+    ],
+    [
+      262,
+      266
+    ],
+    [
+      296,
+      296
+    ],
+    [
+      384,
+      390
+    ],
+    [
+      431,
+      433
+    ],
+    [
+      441,
+      441
+    ]
+  ],
+  "alphafold_unobs_ranges": [
+    [
+      1,
+      57
+    ],
+    [
+      59,
+      59
+    ],
+    [
+      267,
+      295
+    ],
+    [
+      434,
+      440
+    ],
+    [
+      442,
+      575
+    ]
+  ],
+  "alphafold_warning": "Mean ECD pLDDT is 69.7, below the 70 confidence threshold. The AlphaFold model may not be reliable for this extracellular domain.",
+  "viewer": {
+    "pdb_id": "AF-P56721",
+    "auth_chain": "A",
+    "partner_chains": [],
+    "original_file": "AF-P56721_full.pdb",
+    "original_cif_file": "AF-P56721_full.cif",
+    "trimmed_file": "AF-P56721_ECD_trimmed.pdb",
+    "hotspot_auth_residues": [
+      62,
+      76,
+      81,
+      94,
+      95,
+      111,
+      112,
+      118,
+      119,
+      133,
+      134,
+      135,
+      139,
+      150,
+      151,
+      160,
+      161,
+      162,
+      163,
+      164,
+      178,
+      179,
+      181,
+      182,
+      183,
+      184,
+      185,
+      187,
+      190,
+      191,
+      200,
+      201,
+      216,
+      217,
+      218,
+      219,
+      220,
+      221,
+      222,
+      223,
+      224,
+      238,
+      239,
+      240,
+      246,
+      254,
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      261,
+      297,
+      305,
+      312,
+      314,
+      316,
+      326,
+      327,
+      334,
+      342,
+      343,
+      345,
+      353,
+      355,
+      356,
+      358,
+      359,
+      367,
+      368,
+      373,
+      374,
+      375,
+      383,
+      391,
+      392,
+      393,
+      395,
+      396,
+      399,
+      403,
+      404,
+      405,
+      406,
+      407,
+      408,
+      409,
+      410,
+      412,
+      413,
+      414,
+      417,
+      418,
+      421,
+      422,
+      424,
+      425,
+      426,
+      427,
+      428,
+      429,
+      430
+    ],
+    "avoid_glycosylation_auth_residues": [],
+    "avoid_disulfide_auth_residues": [],
+    "avoid_other_ptm_auth_residues": [],
+    "avoid_low_plddt_auth_residues": [
+      58,
+      60,
+      61,
+      115,
+      116,
+      117,
+      262,
+      263,
+      264,
+      265,
+      266,
+      296,
+      384,
+      385,
+      386,
+      387,
+      388,
+      389,
+      390,
+      431,
+      432,
+      433,
+      441
+    ],
+    "missing_auth_residues_note": "pLDDT \u2264 50 residues treated as unobserved"
+  }
+}

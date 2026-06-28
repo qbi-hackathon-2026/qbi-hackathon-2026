@@ -42,3 +42,6 @@ node_modules
 out
 *.tsbuildinfo
 next-env.d.ts
+
+# Local integration planning doc (not published)
+INTEGRATION.md

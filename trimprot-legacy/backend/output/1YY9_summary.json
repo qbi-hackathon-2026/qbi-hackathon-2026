@@ -1,0 +1,549 @@
+{
+  "target": {
+    "uniprot_accession": "P00533",
+    "uniprot_id": "EGFR_HUMAN",
+    "isoform": "Canonical sequence EGFR_HUMAN (1210 aa); no isoform selection needed (single reviewed canonical isoform used).",
+    "accession": "P00533",
+    "id": "EGFR_HUMAN",
+    "protein_name": "Epidermal growth factor receptor",
+    "gene_names": [
+      "EGFR",
+      "ERBB",
+      "ERBB1",
+      "HER1"
+    ],
+    "organism": "Homo sapiens",
+    "is_human": true,
+    "length": 1210
+  },
+  "extracellular_domain": {
+    "start": 25,
+    "end": 645,
+    "trimming_decision": {
+      "trimmed": true,
+      "reason": "Target has 1 transmembrane region(s) ([(646, 668)]); an extracellular-only domain must be isolated for binder design."
+    }
+  },
+  "structure_selection": {
+    "chosen_pdb_id": "1YY9",
+    "resolution": 2.605,
+    "ecd_coverage": 1.0,
+    "has_known_partner": true,
+    "rank_score": 13.395,
+    "reason": "Selected 1YY9 from 388 candidate structures: best combination of extracellular-domain coverage (100%), resolution (2.605 A), and presence of a bound partner chain for interface-based hotspot detection.",
+    "top_alternatives": [
+      {
+        "pdb_id": "1NQL",
+        "resolution": 2.8,
+        "ecd_coverage": 1.0,
+        "has_partner": true,
+        "score": 13.2
+      },
+      {
+        "pdb_id": "4KRP",
+        "resolution": 2.823,
+        "ecd_coverage": 1.0,
+        "has_partner": true,
+        "score": 13.177
+      },
+      {
+        "pdb_id": "4UIP",
+        "resolution": 2.95,
+        "ecd_coverage": 0.995,
+        "has_partner": true,
+        "score": 13.002
+      }
+    ]
+  },
+  "trimming": {
+    "auth_chain": "A",
+    "residues_in_original_chain": 613,
+    "residues_kept": 613,
+    "residues_trimmed_away": 0,
+    "missing_unresolved_label_positions": [
+      1,
+      615,
+      616,
+      617,
+      618
+    ]
+  },
+  "avoid_residues": {
+    "glycosylation_sites": [
+      {
+        "unp_position": 56,
+        "auth_seq_num": 32,
+        "description": "N-linked (GlcNAc...) (complex) asparagine; atypical; partial"
+      },
+      {
+        "unp_position": 73,
+        "auth_seq_num": 49,
+        "description": "N-linked (GlcNAc...) asparagine; atypical"
+      },
+      {
+        "unp_position": 128,
+        "auth_seq_num": 104,
+        "description": "N-linked (GlcNAc...) asparagine"
+      },
+      {
+        "unp_position": 175,
+        "auth_seq_num": 151,
+        "description": "N-linked (GlcNAc...) asparagine"
+      },
+      {
+        "unp_position": 196,
+        "auth_seq_num": 172,
+        "description": "N-linked (GlcNAc...) asparagine"
+      },
+      {
+        "unp_position": 352,
+        "auth_seq_num": 328,
+        "description": "N-linked (GlcNAc...) asparagine"
+      },
+      {
+        "unp_position": 361,
+        "auth_seq_num": 337,
+        "description": "N-linked (GlcNAc...) asparagine"
+      },
+      {
+        "unp_position": 413,
+        "auth_seq_num": 389,
+        "description": "N-linked (GlcNAc...) asparagine"
+      },
+      {
+        "unp_position": 444,
+        "auth_seq_num": 420,
+        "description": "N-linked (GlcNAc...) asparagine"
+      },
+      {
+        "unp_position": 528,
+        "auth_seq_num": 504,
+        "description": "N-linked (GlcNAc...) asparagine"
+      },
+      {
+        "unp_position": 568,
+        "auth_seq_num": 544,
+        "description": "N-linked (GlcNAc...) asparagine; partial"
+      },
+      {
+        "unp_position": 603,
+        "auth_seq_num": 579,
+        "description": "N-linked (GlcNAc...) asparagine; partial"
+      },
+      {
+        "unp_position": 623,
+        "auth_seq_num": 599,
+        "description": "N-linked (GlcNAc...) (high mannose) asparagine"
+      }
+    ],
+    "disulfide_cysteines": [
+      {
+        "unp_position": 31,
+        "auth_seq_num": 7
+      },
+      {
+        "unp_position": 58,
+        "auth_seq_num": 34
+      },
+      {
+        "unp_position": 157,
+        "auth_seq_num": 133
+      },
+      {
+        "unp_position": 187,
+        "auth_seq_num": 163
+      },
+      {
+        "unp_position": 190,
+        "auth_seq_num": 166
+      },
+      {
+        "unp_position": 199,
+        "auth_seq_num": 175
+      },
+      {
+        "unp_position": 194,
+        "auth_seq_num": 170
+      },
+      {
+        "unp_position": 207,
+        "auth_seq_num": 183
+      },
+      {
+        "unp_position": 215,
+        "auth_seq_num": 191
+      },
+      {
+        "unp_position": 223,
+        "auth_seq_num": 199
+      },
+      {
+        "unp_position": 219,
+        "auth_seq_num": 195
+      },
+      {
+        "unp_position": 231,
+        "auth_seq_num": 207
+      },
+      {
+        "unp_position": 232,
+        "auth_seq_num": 208
+      },
+      {
+        "unp_position": 240,
+        "auth_seq_num": 216
+      },
+      {
+        "unp_position": 236,
+        "auth_seq_num": 212
+      },
+      {
+        "unp_position": 248,
+        "auth_seq_num": 224
+      },
+      {
+        "unp_position": 251,
+        "auth_seq_num": 227
+      },
+      {
+        "unp_position": 260,
+        "auth_seq_num": 236
+      },
+      {
+        "unp_position": 264,
+        "auth_seq_num": 240
+      },
+      {
+        "unp_position": 291,
+        "auth_seq_num": 267
+      },
+      {
+        "unp_position": 295,
+        "auth_seq_num": 271
+      },
+      {
+        "unp_position": 307,
+        "auth_seq_num": 283
+      },
+      {
+        "unp_position": 311,
+        "auth_seq_num": 287
+      },
+      {
+        "unp_position": 326,
+        "auth_seq_num": 302
+      },
+      {
+        "unp_position": 329,
+        "auth_seq_num": 305
+      },
+      {
+        "unp_position": 333,
+        "auth_seq_num": 309
+      },
+      {
+        "unp_position": 337,
+        "auth_seq_num": 313
+      },
+      {
+        "unp_position": 362,
+        "auth_seq_num": 338
+      },
+      {
+        "unp_position": 470,
+        "auth_seq_num": 446
+      },
+      {
+        "unp_position": 499,
+        "auth_seq_num": 475
+      },
+      {
+        "unp_position": 506,
+        "auth_seq_num": 482
+      },
+      {
+        "unp_position": 515,
+        "auth_seq_num": 491
+      },
+      {
+        "unp_position": 510,
+        "auth_seq_num": 486
+      },
+      {
+        "unp_position": 523,
+        "auth_seq_num": 499
+      },
+      {
+        "unp_position": 526,
+        "auth_seq_num": 502
+      },
+      {
+        "unp_position": 535,
+        "auth_seq_num": 511
+      },
+      {
+        "unp_position": 539,
+        "auth_seq_num": 515
+      },
+      {
+        "unp_position": 555,
+        "auth_seq_num": 531
+      },
+      {
+        "unp_position": 558,
+        "auth_seq_num": 534
+      },
+      {
+        "unp_position": 571,
+        "auth_seq_num": 547
+      },
+      {
+        "unp_position": 562,
+        "auth_seq_num": 538
+      },
+      {
+        "unp_position": 579,
+        "auth_seq_num": 555
+      },
+      {
+        "unp_position": 582,
+        "auth_seq_num": 558
+      },
+      {
+        "unp_position": 591,
+        "auth_seq_num": 567
+      },
+      {
+        "unp_position": 595,
+        "auth_seq_num": 571
+      },
+      {
+        "unp_position": 617,
+        "auth_seq_num": 593
+      },
+      {
+        "unp_position": 620,
+        "auth_seq_num": 596
+      },
+      {
+        "unp_position": 628,
+        "auth_seq_num": 604
+      },
+      {
+        "unp_position": 624,
+        "auth_seq_num": 600
+      },
+      {
+        "unp_position": 636,
+        "auth_seq_num": 612
+      }
+    ],
+    "other_ptms": [
+      {
+        "unp_position": 229,
+        "auth_seq_num": 205,
+        "ptm_type": "Modified residue",
+        "description": "Phosphoserine"
+      }
+    ],
+    "missing_unresolved": [
+      {
+        "unp_position": 25
+      },
+      {
+        "unp_position": 639
+      },
+      {
+        "unp_position": 640
+      },
+      {
+        "unp_position": 641
+      },
+      {
+        "unp_position": 642
+      }
+    ],
+    "counts": {
+      "glycosylation": 13,
+      "disulfide_cysteines": 50,
+      "other_ptms": 1,
+      "missing_unresolved": 5
+    }
+  },
+  "hotspots": {
+    "source": "known partner interface (chains ['C', 'D'])",
+    "partner_chains": [
+      "C",
+      "D"
+    ],
+    "candidate_residues_unp": [
+      281,
+      293,
+      316,
+      317,
+      318,
+      319,
+      320,
+      321,
+      373,
+      377,
+      381,
+      382,
+      383,
+      406,
+      408,
+      429,
+      432,
+      433,
+      434,
+      435,
+      436,
+      439,
+      441,
+      442,
+      458,
+      462,
+      464,
+      465,
+      467,
+      482,
+      483,
+      489,
+      490,
+      491,
+      492,
+      493,
+      495,
+      497,
+      552,
+      574,
+      634
+    ],
+    "count": 41
+  },
+  "viewer": {
+    "pdb_id": "1YY9",
+    "auth_chain": "A",
+    "partner_chains": [
+      "C",
+      "D"
+    ],
+    "original_file": "1YY9_full.pdb",
+    "original_cif_file": "1YY9_full.cif",
+    "trimmed_file": "1YY9_ECD_trimmed.pdb",
+    "hotspot_auth_residues": [
+      257,
+      269,
+      292,
+      293,
+      294,
+      295,
+      296,
+      297,
+      349,
+      353,
+      357,
+      358,
+      359,
+      382,
+      384,
+      405,
+      408,
+      409,
+      410,
+      411,
+      412,
+      415,
+      417,
+      418,
+      434,
+      438,
+      440,
+      441,
+      443,
+      458,
+      459,
+      465,
+      466,
+      467,
+      468,
+      469,
+      471,
+      473,
+      528,
+      550,
+      610
+    ],
+    "avoid_glycosylation_auth_residues": [
+      32,
+      49,
+      104,
+      151,
+      172,
+      328,
+      337,
+      389,
+      420,
+      504,
+      544,
+      579,
+      599
+    ],
+    "avoid_disulfide_auth_residues": [
+      7,
+      34,
+      133,
+      163,
+      166,
+      170,
+      175,
+      183,
+      191,
+      195,
+      199,
+      207,
+      208,
+      212,
+      216,
+      224,
+      227,
+      236,
+      240,
+      267,
+      271,
+      283,
+      287,
+      302,
+      305,
+      309,
+      313,
+      338,
+      446,
+      475,
+      482,
+      486,
+      491,
+      499,
+      502,
+      511,
+      515,
+      531,
+      534,
+      538,
+      547,
+      555,
+      558,
+      567,
+      571,
+      593,
+      596,
+      600,
+      604,
+      612
+    ],
+    "avoid_other_ptm_auth_residues": [
+      205
+    ],
+    "missing_auth_residues_note": "missing residues have no atoms and cannot be highlighted"
+  }
+}

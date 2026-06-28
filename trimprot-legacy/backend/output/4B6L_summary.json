@@ -1,0 +1,86 @@
+{
+  "target": {
+    "uniprot_accession": "Q9H4B4",
+    "uniprot_id": "PLK3_HUMAN",
+    "isoform": "Canonical sequence PLK3_HUMAN (646 aa); no isoform selection needed (single reviewed canonical isoform used).",
+    "accession": "Q9H4B4",
+    "id": "PLK3_HUMAN",
+    "protein_name": "Serine/threonine-protein kinase PLK3",
+    "gene_names": [
+      "PLK3",
+      "CNK",
+      "FNK",
+      "PRK"
+    ],
+    "organism": "Homo sapiens",
+    "is_human": true,
+    "length": 646
+  },
+  "extracellular_domain": {
+    "start": 1,
+    "end": 646,
+    "trimming_decision": {
+      "trimmed": false,
+      "reason": "No transmembrane region annotated; target may already be extracellular."
+    }
+  },
+  "structure_selection": {
+    "chosen_pdb_id": "4B6L",
+    "resolution": 1.9,
+    "ecd_coverage": 0.435,
+    "has_known_partner": false,
+    "rank_score": 6.45,
+    "reason": "Selected 4B6L from 1 candidate structures: best combination of extracellular-domain coverage (44%), resolution (1.9 A).",
+    "top_alternatives": []
+  },
+  "trimming": {
+    "auth_chain": "A",
+    "residues_in_original_chain": 281,
+    "residues_kept": 281,
+    "residues_trimmed_away": 0,
+    "missing_unresolved_label_positions": []
+  },
+  "avoid_residues": {
+    "glycosylation_sites": [],
+    "disulfide_cysteines": [],
+    "other_ptms": [],
+    "missing_unresolved": [],
+    "counts": {
+      "glycosylation": 0,
+      "disulfide_cysteines": 0,
+      "other_ptms": 0,
+      "missing_unresolved": 0
+    }
+  },
+  "hotspots": {
+    "source": "inferred surface-exposed residues (no bound partner in chosen structure)",
+    "partner_chains": [],
+    "candidate_residues_unp": [
+      52,
+      263,
+      264,
+      266,
+      321
+    ],
+    "count": 5
+  },
+  "viewer": {
+    "pdb_id": "4B6L",
+    "auth_chain": "A",
+    "partner_chains": [],
+    "original_file": "4B6L_full.pdb",
+    "original_cif_file": "4B6L_full.cif",
+    "trimmed_file": "4B6L_ECD_trimmed.pdb",
+    "hotspot_auth_residues": [
+      52,
+      263,
+      264,
+      266,
+      321
+    ],
+    "avoid_glycosylation_auth_residues": [],
+    "avoid_disulfide_auth_residues": [],
+    "avoid_other_ptm_auth_residues": [],
+    "missing_auth_residues_note": "missing residues have no atoms and cannot be highlighted"
+  }
+}

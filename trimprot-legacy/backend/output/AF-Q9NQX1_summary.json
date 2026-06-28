@@ -1,0 +1,1754 @@
+{
+  "target": {
+    "uniprot_accession": "Q9NQX1",
+    "uniprot_id": "PRDM5_HUMAN",
+    "isoform": "Canonical sequence PRDM5_HUMAN (630 aa); AlphaFold model used (no crystal structure with adequate ECD coverage found)."
+  },
+  "extracellular_domain": {
+    "start": 1,
+    "end": 630,
+    "trimming_decision": {
+      "trimmed": false,
+      "reason": "No transmembrane region annotated; target may already be extracellular."
+    }
+  },
+  "structure_selection": {
+    "chosen_pdb_id": null,
+    "resolution": null,
+    "ecd_coverage": null,
+    "has_known_partner": false,
+    "rank_score": null,
+    "reason": "No crystal structure with adequate ECD coverage found (1 candidate examined); falling back to AlphaFold prediction.",
+    "top_alternatives": [
+      {
+        "pdb_id": "6XAZ",
+        "resolution": 1.7,
+        "ecd_coverage": 0.206,
+        "has_partner": false,
+        "score": 4.363
+      }
+    ]
+  },
+  "trimming": {
+    "auth_chain": "A",
+    "residues_in_original_chain": 630,
+    "residues_kept": 630,
+    "residues_trimmed_away": 0,
+    "missing_unresolved_label_positions": []
+  },
+  "avoid_residues": {
+    "glycosylation_sites": [],
+    "disulfide_cysteines": [],
+    "other_ptms": [],
+    "missing_unresolved": [
+      {
+        "unp_position": 1
+      },
+      {
+        "unp_position": 2
+      },
+      {
+        "unp_position": 3
+      },
+      {
+        "unp_position": 4
+      },
+      {
+        "unp_position": 5
+      },
+      {
+        "unp_position": 6
+      },
+      {
+        "unp_position": 7
+      },
+      {
+        "unp_position": 8
+      },
+      {
+        "unp_position": 9
+      },
+      {
+        "unp_position": 10
+      },
+      {
+        "unp_position": 11
+      },
+      {
+        "unp_position": 12
+      },
+      {
+        "unp_position": 13
+      },
+      {
+        "unp_position": 14
+      },
+      {
+        "unp_position": 15
+      },
+      {
+        "unp_position": 16
+      },
+      {
+        "unp_position": 17
+      },
+      {
+        "unp_position": 18
+      },
+      {
+        "unp_position": 19
+      },
+      {
+        "unp_position": 77
+      },
+      {
+        "unp_position": 78
+      },
+      {
+        "unp_position": 79
+      },
+      {
+        "unp_position": 124
+      },
+      {
+        "unp_position": 125
+      },
+      {
+        "unp_position": 126
+      },
+      {
+        "unp_position": 127
+      },
+      {
+        "unp_position": 128
+      },
+      {
+        "unp_position": 129
+      },
+      {
+        "unp_position": 130
+      },
+      {
+        "unp_position": 131
+      },
+      {
+        "unp_position": 132
+      },
+      {
+        "unp_position": 133
+      },
+      {
+        "unp_position": 134
+      },
+      {
+        "unp_position": 135
+      },
+      {
+        "unp_position": 136
+      },
+      {
+        "unp_position": 137
+      },
+      {
+        "unp_position": 138
+      },
+      {
+        "unp_position": 139
+      },
+      {
+        "unp_position": 140
+      },
+      {
+        "unp_position": 141
+      },
+      {
+        "unp_position": 142
+      },
+      {
+        "unp_position": 143
+      },
+      {
+        "unp_position": 144
+      },
+      {
+        "unp_position": 145
+      },
+      {
+        "unp_position": 146
+      },
+      {
+        "unp_position": 147
+      },
+      {
+        "unp_position": 148
+      },
+      {
+        "unp_position": 149
+      },
+      {
+        "unp_position": 150
+      },
+      {
+        "unp_position": 151
+      },
+      {
+        "unp_position": 152
+      },
+      {
+        "unp_position": 153
+      },
+      {
+        "unp_position": 154
+      },
+      {
+        "unp_position": 155
+      },
+      {
+        "unp_position": 156
+      },
+      {
+        "unp_position": 157
+      },
+      {
+        "unp_position": 158
+      },
+      {
+        "unp_position": 159
+      },
+      {
+        "unp_position": 160
+      },
+      {
+        "unp_position": 161
+      },
+      {
+        "unp_position": 162
+      },
+      {
+        "unp_position": 163
+      },
+      {
+        "unp_position": 164
+      },
+      {
+        "unp_position": 165
+      },
+      {
+        "unp_position": 192
+      },
+      {
+        "unp_position": 193
+      },
+      {
+        "unp_position": 194
+      },
+      {
+        "unp_position": 195
+      },
+      {
+        "unp_position": 196
+      },
+      {
+        "unp_position": 224
+      },
+      {
+        "unp_position": 225
+      },
+      {
+        "unp_position": 226
+      },
+      {
+        "unp_position": 227
+      },
+      {
+        "unp_position": 228
+      },
+      {
+        "unp_position": 229
+      },
+      {
+        "unp_position": 230
+      },
+      {
+        "unp_position": 231
+      },
+      {
+        "unp_position": 232
+      },
+      {
+        "unp_position": 289
+      },
+      {
+        "unp_position": 290
+      },
+      {
+        "unp_position": 291
+      },
+      {
+        "unp_position": 292
+      },
+      {
+        "unp_position": 293
+      },
+      {
+        "unp_position": 630
+      }
+    ],
+    "low_plddt": [
+      {
+        "unp_position": 20,
+        "auth_seq_num": 20,
+        "plddt": 59.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 36,
+        "auth_seq_num": 36,
+        "plddt": 65.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 37,
+        "auth_seq_num": 37,
+        "plddt": 54.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 38,
+        "auth_seq_num": 38,
+        "plddt": 54.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 39,
+        "auth_seq_num": 39,
+        "plddt": 55.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 40,
+        "auth_seq_num": 40,
+        "plddt": 57.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 41,
+        "auth_seq_num": 41,
+        "plddt": 56.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 42,
+        "auth_seq_num": 42,
+        "plddt": 63.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 43,
+        "auth_seq_num": 43,
+        "plddt": 68.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 45,
+        "auth_seq_num": 45,
+        "plddt": 67.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 46,
+        "auth_seq_num": 46,
+        "plddt": 68.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 47,
+        "auth_seq_num": 47,
+        "plddt": 69.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 48,
+        "auth_seq_num": 48,
+        "plddt": 65.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 49,
+        "auth_seq_num": 49,
+        "plddt": 69.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 50,
+        "auth_seq_num": 50,
+        "plddt": 65.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 51,
+        "auth_seq_num": 51,
+        "plddt": 64.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 52,
+        "auth_seq_num": 52,
+        "plddt": 65.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 53,
+        "auth_seq_num": 53,
+        "plddt": 65.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 54,
+        "auth_seq_num": 54,
+        "plddt": 66.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 55,
+        "auth_seq_num": 55,
+        "plddt": 63.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 56,
+        "auth_seq_num": 56,
+        "plddt": 66.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 63,
+        "auth_seq_num": 63,
+        "plddt": 64.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 64,
+        "auth_seq_num": 64,
+        "plddt": 66.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 65,
+        "auth_seq_num": 65,
+        "plddt": 66.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 72,
+        "auth_seq_num": 72,
+        "plddt": 67.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 73,
+        "auth_seq_num": 73,
+        "plddt": 65.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 74,
+        "auth_seq_num": 74,
+        "plddt": 61.3,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 75,
+        "auth_seq_num": 75,
+        "plddt": 56.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 76,
+        "auth_seq_num": 76,
+        "plddt": 51.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 80,
+        "auth_seq_num": 80,
+        "plddt": 53.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 81,
+        "auth_seq_num": 81,
+        "plddt": 63.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 82,
+        "auth_seq_num": 82,
+        "plddt": 57.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 83,
+        "auth_seq_num": 83,
+        "plddt": 58.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 84,
+        "auth_seq_num": 84,
+        "plddt": 64.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 89,
+        "auth_seq_num": 89,
+        "plddt": 67.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 90,
+        "auth_seq_num": 90,
+        "plddt": 68.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 91,
+        "auth_seq_num": 91,
+        "plddt": 65.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 92,
+        "auth_seq_num": 92,
+        "plddt": 64.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 99,
+        "auth_seq_num": 99,
+        "plddt": 64.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 100,
+        "auth_seq_num": 100,
+        "plddt": 63.3,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 101,
+        "auth_seq_num": 101,
+        "plddt": 57.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 102,
+        "auth_seq_num": 102,
+        "plddt": 62.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 103,
+        "auth_seq_num": 103,
+        "plddt": 55.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 104,
+        "auth_seq_num": 104,
+        "plddt": 59.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 105,
+        "auth_seq_num": 105,
+        "plddt": 63.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 106,
+        "auth_seq_num": 106,
+        "plddt": 68.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 123,
+        "auth_seq_num": 123,
+        "plddt": 60.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 166,
+        "auth_seq_num": 166,
+        "plddt": 66.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 171,
+        "auth_seq_num": 171,
+        "plddt": 64.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 172,
+        "auth_seq_num": 172,
+        "plddt": 59.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 173,
+        "auth_seq_num": 173,
+        "plddt": 60.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 175,
+        "auth_seq_num": 175,
+        "plddt": 65.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 189,
+        "auth_seq_num": 189,
+        "plddt": 64.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 190,
+        "auth_seq_num": 190,
+        "plddt": 68.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 191,
+        "auth_seq_num": 191,
+        "plddt": 51.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 197,
+        "auth_seq_num": 197,
+        "plddt": 51.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 198,
+        "auth_seq_num": 198,
+        "plddt": 64.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 216,
+        "auth_seq_num": 216,
+        "plddt": 68.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 220,
+        "auth_seq_num": 220,
+        "plddt": 65.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 222,
+        "auth_seq_num": 222,
+        "plddt": 64.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 223,
+        "auth_seq_num": 223,
+        "plddt": 55.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 233,
+        "auth_seq_num": 233,
+        "plddt": 61.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 237,
+        "auth_seq_num": 237,
+        "plddt": 67.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 238,
+        "auth_seq_num": 238,
+        "plddt": 64.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 239,
+        "auth_seq_num": 239,
+        "plddt": 64.3,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 240,
+        "auth_seq_num": 240,
+        "plddt": 63.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 242,
+        "auth_seq_num": 242,
+        "plddt": 67.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 251,
+        "auth_seq_num": 251,
+        "plddt": 65.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 253,
+        "auth_seq_num": 253,
+        "plddt": 69.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 254,
+        "auth_seq_num": 254,
+        "plddt": 61.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 255,
+        "auth_seq_num": 255,
+        "plddt": 60.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 256,
+        "auth_seq_num": 256,
+        "plddt": 65.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 257,
+        "auth_seq_num": 257,
+        "plddt": 55.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 258,
+        "auth_seq_num": 258,
+        "plddt": 53.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 259,
+        "auth_seq_num": 259,
+        "plddt": 50.3,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 260,
+        "auth_seq_num": 260,
+        "plddt": 53.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 261,
+        "auth_seq_num": 261,
+        "plddt": 63.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 267,
+        "auth_seq_num": 267,
+        "plddt": 54.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 268,
+        "auth_seq_num": 268,
+        "plddt": 57.4,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 269,
+        "auth_seq_num": 269,
+        "plddt": 65.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 270,
+        "auth_seq_num": 270,
+        "plddt": 62.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 271,
+        "auth_seq_num": 271,
+        "plddt": 68.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 272,
+        "auth_seq_num": 272,
+        "plddt": 66.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 281,
+        "auth_seq_num": 281,
+        "plddt": 68.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 284,
+        "auth_seq_num": 284,
+        "plddt": 67.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 285,
+        "auth_seq_num": 285,
+        "plddt": 58.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 286,
+        "auth_seq_num": 286,
+        "plddt": 61.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 287,
+        "auth_seq_num": 287,
+        "plddt": 66.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 288,
+        "auth_seq_num": 288,
+        "plddt": 58.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 294,
+        "auth_seq_num": 294,
+        "plddt": 53.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 295,
+        "auth_seq_num": 295,
+        "plddt": 62.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 296,
+        "auth_seq_num": 296,
+        "plddt": 64.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 297,
+        "auth_seq_num": 297,
+        "plddt": 65.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 298,
+        "auth_seq_num": 298,
+        "plddt": 69.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 299,
+        "auth_seq_num": 299,
+        "plddt": 58.3,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 300,
+        "auth_seq_num": 300,
+        "plddt": 68.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 301,
+        "auth_seq_num": 301,
+        "plddt": 62.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 302,
+        "auth_seq_num": 302,
+        "plddt": 65.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 303,
+        "auth_seq_num": 303,
+        "plddt": 66.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 304,
+        "auth_seq_num": 304,
+        "plddt": 65.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 305,
+        "auth_seq_num": 305,
+        "plddt": 68.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 306,
+        "auth_seq_num": 306,
+        "plddt": 69.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 311,
+        "auth_seq_num": 311,
+        "plddt": 69.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 312,
+        "auth_seq_num": 312,
+        "plddt": 67.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 313,
+        "auth_seq_num": 313,
+        "plddt": 68.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 314,
+        "auth_seq_num": 314,
+        "plddt": 69.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 315,
+        "auth_seq_num": 315,
+        "plddt": 65.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 316,
+        "auth_seq_num": 316,
+        "plddt": 60.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 317,
+        "auth_seq_num": 317,
+        "plddt": 62.1,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 318,
+        "auth_seq_num": 318,
+        "plddt": 65.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 400,
+        "auth_seq_num": 400,
+        "plddt": 66.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 485,
+        "auth_seq_num": 485,
+        "plddt": 68.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 627,
+        "auth_seq_num": 627,
+        "plddt": 67.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 628,
+        "auth_seq_num": 628,
+        "plddt": 61.5,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 629,
+        "auth_seq_num": 629,
+        "plddt": 51.7,
+        "reason": "alphafold_low_plddt<70"
+      }
+    ],
+    "counts": {
+      "glycosylation_sites": 0,
+      "disulfide_cysteines": 0,
+      "other_ptms": 0,
+      "missing_unresolved": 84,
+      "low_plddt": 115
+    }
+  },
+  "hotspots": {
+    "source": "inferred surface-exposed residues (AlphaFold model v6; pLDDT masking applied, mean ECD pLDDT=72.2)",
+    "partner_chains": [],
+    "candidate_residues_unp": [
+      28,
+      30,
+      31,
+      32,
+      44,
+      66,
+      93,
+      112,
+      114,
+      115,
+      116,
+      168,
+      170,
+      174,
+      177,
+      178,
+      179,
+      180,
+      181,
+      183,
+      184,
+      187,
+      188,
+      200,
+      202,
+      204,
+      205,
+      206,
+      207,
+      209,
+      210,
+      211,
+      212,
+      213,
+      215,
+      219,
+      235,
+      244,
+      245,
+      246,
+      247,
+      248,
+      250,
+      265,
+      266,
+      274,
+      275,
+      276,
+      277,
+      278,
+      280,
+      307,
+      308,
+      309,
+      321,
+      323,
+      324,
+      325,
+      326,
+      327,
+      328,
+      330,
+      331,
+      332,
+      333,
+      336,
+      337,
+      342,
+      343,
+      344,
+      345,
+      346,
+      347,
+      349,
+      351,
+      352,
+      353,
+      354,
+      355,
+      356,
+      360,
+      361,
+      364,
+      365,
+      371,
+      372,
+      373,
+      377,
+      379,
+      380,
+      381,
+      382,
+      383,
+      387,
+      388,
+      389,
+      390,
+      392,
+      393,
+      398,
+      399,
+      401,
+      405,
+      407,
+      408,
+      409,
+      410,
+      411,
+      412,
+      417,
+      420,
+      421,
+      426,
+      427,
+      428,
+      429,
+      430,
+      431,
+      433,
+      435,
+      436,
+      437,
+      438,
+      440,
+      444,
+      445,
+      446,
+      448,
+      455,
+      456,
+      457,
+      458,
+      460,
+      462,
+      464,
+      465,
+      466,
+      467,
+      468,
+      469,
+      473,
+      474,
+      475,
+      477,
+      483,
+      484,
+      486,
+      488,
+      490,
+      492,
+      493,
+      494,
+      495,
+      496,
+      497,
+      501,
+      502,
+      503,
+      511,
+      512,
+      513,
+      514,
+      515,
+      516,
+      518,
+      520,
+      521,
+      522,
+      523,
+      524,
+      529,
+      530,
+      539,
+      540,
+      541,
+      542,
+      543,
+      544,
+      546,
+      548,
+      549,
+      550,
+      551,
+      552,
+      553,
+      557,
+      558,
+      561,
+      567,
+      568,
+      569,
+      570,
+      571,
+      572,
+      574,
+      576,
+      577,
+      578,
+      579,
+      580,
+      581,
+      585,
+      586,
+      589,
+      590,
+      595,
+      596,
+      597,
+      598,
+      599,
+      600,
+      601,
+      603,
+      605,
+      606,
+      607,
+      608,
+      609,
+      610,
+      613,
+      614,
+      615,
+      616,
+      618,
+      619,
+      622,
+      623,
+      624,
+      625,
+      626
+    ],
+    "count": 230
+  },
+  "alphafold_fallback": true,
+  "alphafold_version": 6,
+  "alphafold_model_url": "https://alphafold.ebi.ac.uk/files/AF-Q9NQX1-F1-model_v6.cif",
+  "alphafold_ecd_mean_plddt": 72.24,
+  "alphafold_ecd_n_low_plddt": 115,
+  "alphafold_ecd_n_unobserved": 84,
+  "alphafold_low_plddt_ranges": [
+    [
+      20,
+      20
+    ],
+    [
+      36,
+      43
+    ],
+    [
+      45,
+      56
+    ],
+    [
+      63,
+      65
+    ],
+    [
+      72,
+      76
+    ],
+    [
+      80,
+      84
+    ],
+    [
+      89,
+      92
+    ],
+    [
+      99,
+      106
+    ],
+    [
+      123,
+      123
+    ],
+    [
+      166,
+      166
+    ],
+    [
+      171,
+      173
+    ],
+    [
+      175,
+      175
+    ],
+    [
+      189,
+      191
+    ],
+    [
+      197,
+      198
+    ],
+    [
+      216,
+      216
+    ],
+    [
+      220,
+      220
+    ],
+    [
+      222,
+      223
+    ],
+    [
+      233,
+      233
+    ],
+    [
+      237,
+      240
+    ],
+    [
+      242,
+      242
+    ],
+    [
+      251,
+      251
+    ],
+    [
+      253,
+      261
+    ],
+    [
+      267,
+      272
+    ],
+    [
+      281,
+      281
+    ],
+    [
+      284,
+      288
+    ],
+    [
+      294,
+      306
+    ],
+    [
+      311,
+      318
+    ],
+    [
+      400,
+      400
+    ],
+    [
+      485,
+      485
+    ],
+    [
+      627,
+      629
+    ]
+  ],
+  "alphafold_unobs_ranges": [
+    [
+      1,
+      19
+    ],
+    [
+      77,
+      79
+    ],
+    [
+      124,
+      165
+    ],
+    [
+      192,
+      196
+    ],
+    [
+      224,
+      232
+    ],
+    [
+      289,
+      293
+    ],
+    [
+      630,
+      630
+    ]
+  ],
+  "alphafold_warning": null,
+  "viewer": {
+    "pdb_id": "AF-Q9NQX1",
+    "auth_chain": "A",
+    "partner_chains": [],
+    "original_file": "AF-Q9NQX1_full.pdb",
+    "original_cif_file": "AF-Q9NQX1_full.cif",
+    "trimmed_file": "AF-Q9NQX1_ECD_trimmed.pdb",
+    "hotspot_auth_residues": [
+      28,
+      30,
+      31,
+      32,
+      44,
+      66,
+      93,
+      112,
+      114,
+      115,
+      116,
+      168,
+      170,
+      174,
+      177,
+      178,
+      179,
+      180,
+      181,
+      183,
+      184,
+      187,
+      188,
+      200,
+      202,
+      204,
+      205,
+      206,
+      207,
+      209,
+      210,
+      211,
+      212,
+      213,
+      215,
+      219,
+      235,
+      244,
+      245,
+      246,
+      247,
+      248,
+      250,
+      265,
+      266,
+      274,
+      275,
+      276,
+      277,
+      278,
+      280,
+      307,
+      308,
+      309,
+      321,
+      323,
+      324,
+      325,
+      326,
+      327,
+      328,
+      330,
+      331,
+      332,
+      333,
+      336,
+      337,
+      342,
+      343,
+      344,
+      345,
+      346,
+      347,
+      349,
+      351,
+      352,
+      353,
+      354,
+      355,
+      356,
+      360,
+      361,
+      364,
+      365,
+      371,
+      372,
+      373,
+      377,
+      379,
+      380,
+      381,
+      382,
+      383,
+      387,
+      388,
+      389,
+      390,
+      392,
+      393,
+      398,
+      399,
+      401,
+      405,
+      407,
+      408,
+      409,
+      410,
+      411,
+      412,
+      417,
+      420,
+      421,
+      426,
+      427,
+      428,
+      429,
+      430,
+      431,
+      433,
+      435,
+      436,
+      437,
+      438,
+      440,
+      444,
+      445,
+      446,
+      448,
+      455,
+      456,
+      457,
+      458,
+      460,
+      462,
+      464,
+      465,
+      466,
+      467,
+      468,
+      469,
+      473,
+      474,
+      475,
+      477,
+      483,
+      484,
+      486,
+      488,
+      490,
+      492,
+      493,
+      494,
+      495,
+      496,
+      497,
+      501,
+      502,
+      503,
+      511,
+      512,
+      513,
+      514,
+      515,
+      516,
+      518,
+      520,
+      521,
+      522,
+      523,
+      524,
+      529,
+      530,
+      539,
+      540,
+      541,
+      542,
+      543,
+      544,
+      546,
+      548,
+      549,
+      550,
+      551,
+      552,
+      553,
+      557,
+      558,
+      561,
+      567,
+      568,
+      569,
+      570,
+      571,
+      572,
+      574,
+      576,
+      577,
+      578,
+      579,
+      580,
+      581,
+      585,
+      586,
+      589,
+      590,
+      595,
+      596,
+      597,
+      598,
+      599,
+      600,
+      601,
+      603,
+      605,
+      606,
+      607,
+      608,
+      609,
+      610,
+      613,
+      614,
+      615,
+      616,
+      618,
+      619,
+      622,
+      623,
+      624,
+      625,
+      626
+    ],
+    "avoid_glycosylation_auth_residues": [],
+    "avoid_disulfide_auth_residues": [],
+    "avoid_other_ptm_auth_residues": [],
+    "avoid_low_plddt_auth_residues": [
+      20,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      63,
+      64,
+      65,
+      72,
+      73,
+      74,
+      75,
+      76,
+      80,
+      81,
+      82,
+      83,
+      84,
+      89,
+      90,
+      91,
+      92,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      123,
+      166,
+      171,
+      172,
+      173,
+      175,
+      189,
+      190,
+      191,
+      197,
+      198,
+      216,
+      220,
+      222,
+      223,
+      233,
+      237,
+      238,
+      239,
+      240,
+      242,
+      251,
+      253,
+      254,
+      255,
+      256,
+      257,
+      258,
+      259,
+      260,
+      261,
+      267,
+      268,
+      269,
+      270,
+      271,
+      272,
+      281,
+      284,
+      285,
+      286,
+      287,
+      288,
+      294,
+      295,
+      296,
+      297,
+      298,
+      299,
+      300,
+      301,
+      302,
+      303,
+      304,
+      305,
+      306,
+      311,
+      312,
+      313,
+      314,
+      315,
+      316,
+      317,
+      318,
+      400,
+      485,
+      627,
+      628,
+      629
+    ],
+    "missing_auth_residues_note": "pLDDT \u2264 50 residues treated as unobserved"
+  }
+}

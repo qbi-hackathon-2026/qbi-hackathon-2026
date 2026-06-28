@@ -1,0 +1,343 @@
+{
+  "target": {
+    "uniprot_accession": "Q8N999",
+    "uniprot_id": "RLIG1_HUMAN",
+    "isoform": "Canonical sequence RLIG1_HUMAN (325 aa); AlphaFold model used (no crystal structure with adequate ECD coverage found)."
+  },
+  "extracellular_domain": {
+    "start": 1,
+    "end": 325,
+    "trimming_decision": {
+      "trimmed": false,
+      "reason": "No transmembrane region annotated; target may already be extracellular."
+    }
+  },
+  "structure_selection": {
+    "chosen_pdb_id": null,
+    "resolution": null,
+    "ecd_coverage": null,
+    "has_known_partner": false,
+    "rank_score": null,
+    "reason": "No crystal structure with adequate ECD coverage found (0 candidates examined); falling back to AlphaFold prediction.",
+    "top_alternatives": []
+  },
+  "trimming": {
+    "auth_chain": "A",
+    "residues_in_original_chain": 325,
+    "residues_kept": 325,
+    "residues_trimmed_away": 0,
+    "missing_unresolved_label_positions": []
+  },
+  "avoid_residues": {
+    "glycosylation_sites": [],
+    "disulfide_cysteines": [],
+    "other_ptms": [],
+    "missing_unresolved": [
+      {
+        "unp_position": 1
+      },
+      {
+        "unp_position": 2
+      }
+    ],
+    "low_plddt": [
+      {
+        "unp_position": 3,
+        "auth_seq_num": 3,
+        "plddt": 69.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 97,
+        "auth_seq_num": 97,
+        "plddt": 59.7,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 98,
+        "auth_seq_num": 98,
+        "plddt": 67.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 99,
+        "auth_seq_num": 99,
+        "plddt": 69.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 291,
+        "auth_seq_num": 291,
+        "plddt": 69.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 292,
+        "auth_seq_num": 292,
+        "plddt": 63.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 293,
+        "auth_seq_num": 293,
+        "plddt": 54.2,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 294,
+        "auth_seq_num": 294,
+        "plddt": 58.8,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 295,
+        "auth_seq_num": 295,
+        "plddt": 57.0,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 296,
+        "auth_seq_num": 296,
+        "plddt": 62.6,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 324,
+        "auth_seq_num": 324,
+        "plddt": 68.9,
+        "reason": "alphafold_low_plddt<70"
+      },
+      {
+        "unp_position": 325,
+        "auth_seq_num": 325,
+        "plddt": 56.1,
+        "reason": "alphafold_low_plddt<70"
+      }
+    ],
+    "counts": {
+      "glycosylation_sites": 0,
+      "disulfide_cysteines": 0,
+      "other_ptms": 0,
+      "missing_unresolved": 2,
+      "low_plddt": 12
+    }
+  },
+  "hotspots": {
+    "source": "inferred surface-exposed residues (AlphaFold model v6; pLDDT masking applied, mean ECD pLDDT=92.0)",
+    "partner_chains": [],
+    "candidate_residues_unp": [
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      42,
+      45,
+      46,
+      50,
+      51,
+      67,
+      69,
+      70,
+      84,
+      85,
+      88,
+      89,
+      91,
+      92,
+      95,
+      96,
+      101,
+      102,
+      104,
+      106,
+      108,
+      109,
+      112,
+      113,
+      116,
+      126,
+      127,
+      128,
+      129,
+      130,
+      148,
+      150,
+      151,
+      153,
+      162,
+      173,
+      174,
+      175,
+      176,
+      203,
+      210,
+      211,
+      212,
+      213,
+      227,
+      228,
+      231,
+      233,
+      235,
+      236,
+      239,
+      243,
+      245,
+      257,
+      258,
+      272,
+      276,
+      290,
+      297,
+      299,
+      300,
+      301,
+      312,
+      316
+    ],
+    "count": 76
+  },
+  "alphafold_fallback": true,
+  "alphafold_version": 6,
+  "alphafold_model_url": "https://alphafold.ebi.ac.uk/files/AF-Q8N999-F1-model_v6.cif",
+  "alphafold_ecd_mean_plddt": 92.03,
+  "alphafold_ecd_n_low_plddt": 12,
+  "alphafold_ecd_n_unobserved": 2,
+  "alphafold_low_plddt_ranges": [
+    [
+      3,
+      3
+    ],
+    [
+      97,
+      99
+    ],
+    [
+      291,
+      296
+    ],
+    [
+      324,
+      325
+    ]
+  ],
+  "alphafold_unobs_ranges": [
+    [
+      1,
+      2
+    ]
+  ],
+  "alphafold_warning": null,
+  "viewer": {
+    "pdb_id": "AF-Q8N999",
+    "auth_chain": "A",
+    "partner_chains": [],
+    "original_file": "AF-Q8N999_full.pdb",
+    "original_cif_file": "AF-Q8N999_full.cif",
+    "trimmed_file": "AF-Q8N999_ECD_trimmed.pdb",
+    "hotspot_auth_residues": [
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      42,
+      45,
+      46,
+      50,
+      51,
+      67,
+      69,
+      70,
+      84,
+      85,
+      88,
+      89,
+      91,
+      92,
+      95,
+      96,
+      101,
+      102,
+      104,
+      106,
+      108,
+      109,
+      112,
+      113,
+      116,
+      126,
+      127,
+      128,
+      129,
+      130,
+      148,
+      150,
+      151,
+      153,
+      162,
+      173,
+      174,
+      175,
+      176,
+      203,
+      210,
+      211,
+      212,
+      213,
+      227,
+      228,
+      231,
+      233,
+      235,
+      236,
+      239,
+      243,
+      245,
+      257,
+      258,
+      272,
+      276,
+      290,
+      297,
+      299,
+      300,
+      301,
+      312,
+      316
+    ],
+    "avoid_glycosylation_auth_residues": [],
+    "avoid_disulfide_auth_residues": [],
+    "avoid_other_ptm_auth_residues": [],
+    "avoid_low_plddt_auth_residues": [
+      3,
+      97,
+      98,
+      99,
+      291,
+      292,
+      293,
+      294,
+      295,
+      296,
+      324,
+      325
+    ],
+    "missing_auth_residues_note": "pLDDT \u2264 50 residues treated as unobserved"
+  }
+}
