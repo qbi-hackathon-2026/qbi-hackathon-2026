@@ -16,7 +16,9 @@ from .glyco import predict_glycosylation
 from .hotspots import Hotspot, Removal, filter_hotspots, select_patch
 from .interface import InterfaceResidue, detect_interface
 from .sifts import SiftsMapping, get_sifts_mapping
-from .structio import ChainClasses, LoadedStructure, classify_chains, load_structure
+from .structio import (
+    ChainClasses, LoadedStructure, classify_chains, load_structure, polymer_sequence,
+)
 from .structures import StructureChoice, pfam_domains, search_structures
 from .topology import (
     MembraneProximal,
@@ -228,8 +230,14 @@ def run_pipeline(name: Optional[str] = None, *, accession: Optional[str] = None,
     domains = pfam_domains(choice.chosen.pdb_id, target_chain)
 
     # 12. Keep chains for trim, classified against the DISPLAY (assembly) coords.
+    # Match by the target's actual sequence (from the AU), not by chain name:
+    # biological-assembly generation can legitimately rename or drop the
+    # originally-selected chain id, so a name-based lookup in the assembled
+    # structure can silently fail to find any copy of the target at all.
     if loaded.assembly_applied:
-        display_chains = classify_chains(loaded.display, choice.target_chain)
+        target_seq = polymer_sequence(structure[0][target_chain])
+        display_chains = classify_chains(loaded.display, choice.target_chain,
+                                         target_seq=target_seq)
     else:
         display_chains = chains
     if assembly == "bioassembly":

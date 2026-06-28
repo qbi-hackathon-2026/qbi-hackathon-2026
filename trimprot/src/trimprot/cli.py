@@ -57,7 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--min-ecd-coverage", type=float, default=0.40,
                    help="minimum ECD coverage a structure must have to be eligible")
     p.add_argument("--patch-radius", type=float, default=11.0,
-                   help="Cβ contiguity radius (Å) for the BindCraft epitope patch")
+                   help="CB contiguity radius (Å) for the BindCraft epitope patch")
     p.add_argument("--patch-size", type=int, default=8,
                    help="max residues in the BindCraft epitope patch")
     p.add_argument("--no-patch", action="store_true",
@@ -67,6 +67,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Legacy Windows consoles default stdout/stderr to the system codepage (e.g.
+    # cp1252), which raises UnicodeEncodeError on the first non-ASCII character
+    # printed (resolution units like "Å"). Degrade gracefully instead of crashing.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="backslashreplace")
+
     args = build_parser().parse_args(argv)
     if not args.protein and not args.accession:
         print("error: provide --protein or --accession", file=sys.stderr)
