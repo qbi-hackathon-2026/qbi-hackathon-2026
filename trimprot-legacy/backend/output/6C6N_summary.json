@@ -1,0 +1,197 @@
+{
+  "target": {
+    "uniprot_accession": "Q14534",
+    "uniprot_id": "ERG1_HUMAN",
+    "isoform": "Canonical sequence ERG1_HUMAN (574 aa); no isoform selection needed (single reviewed canonical isoform used).",
+    "accession": "Q14534",
+    "id": "ERG1_HUMAN",
+    "protein_name": "Squalene monooxygenase",
+    "gene_names": [
+      "SQLE",
+      "ERG1"
+    ],
+    "organism": "Homo sapiens",
+    "is_human": true,
+    "length": 574
+  },
+  "extracellular_domain": {
+    "start": 1,
+    "end": 574,
+    "trimming_decision": {
+      "trimmed": false,
+      "reason": "No transmembrane region annotated; target may already be extracellular."
+    }
+  },
+  "structure_selection": {
+    "chosen_pdb_id": "6C6N",
+    "resolution": 2.3,
+    "ecd_coverage": 0.798,
+    "has_known_partner": false,
+    "rank_score": 9.679,
+    "reason": "Selected 6C6N from 3 candidate structures: best combination of extracellular-domain coverage (80%), resolution (2.3 A).",
+    "top_alternatives": [
+      {
+        "pdb_id": "6C6P",
+        "resolution": 2.5,
+        "ecd_coverage": 0.798,
+        "has_partner": false,
+        "score": 9.479
+      },
+      {
+        "pdb_id": "6C6R",
+        "resolution": 3.0,
+        "ecd_coverage": 0.798,
+        "has_partner": false,
+        "score": 8.979
+      }
+    ]
+  },
+  "trimming": {
+    "auth_chain": "A",
+    "residues_in_original_chain": 450,
+    "residues_kept": 450,
+    "residues_trimmed_away": 0,
+    "missing_unresolved_label_positions": [
+      2,
+      3,
+      4,
+      5,
+      456,
+      457,
+      458
+    ]
+  },
+  "avoid_residues": {
+    "glycosylation_sites": [],
+    "disulfide_cysteines": [],
+    "other_ptms": [],
+    "missing_unresolved": [
+      {
+        "unp_position": 118
+      },
+      {
+        "unp_position": 119
+      },
+      {
+        "unp_position": 120
+      },
+      {
+        "unp_position": 121
+      },
+      {
+        "unp_position": 572
+      },
+      {
+        "unp_position": 573
+      },
+      {
+        "unp_position": 574
+      }
+    ],
+    "counts": {
+      "glycosylation_sites": 0,
+      "disulfide_cysteines": 0,
+      "other_ptms": 0,
+      "missing_unresolved": 7
+    }
+  },
+  "hotspots": {
+    "source": "known partner interface (chains ['B'])",
+    "partner_chains": [
+      "B"
+    ],
+    "candidate_residues_unp": [
+      125,
+      145,
+      146,
+      147,
+      273,
+      436,
+      437,
+      439,
+      443,
+      446,
+      456,
+      459,
+      460,
+      464,
+      516,
+      517,
+      520,
+      521,
+      524,
+      525,
+      528,
+      531,
+      532,
+      535,
+      536,
+      540,
+      543,
+      544,
+      547,
+      550,
+      551,
+      554,
+      558,
+      562,
+      565,
+      566,
+      569
+    ],
+    "count": 37
+  },
+  "viewer": {
+    "pdb_id": "6C6N",
+    "auth_chain": "A",
+    "partner_chains": [
+      "B"
+    ],
+    "original_file": "6C6N_full.pdb",
+    "original_cif_file": "6C6N_full.cif",
+    "trimmed_file": "6C6N_ECD_trimmed.pdb",
+    "hotspot_auth_residues": [
+      125,
+      145,
+      146,
+      147,
+      273,
+      436,
+      437,
+      439,
+      443,
+      446,
+      456,
+      459,
+      460,
+      464,
+      516,
+      517,
+      520,
+      521,
+      524,
+      525,
+      528,
+      531,
+      532,
+      535,
+      536,
+      540,
+      543,
+      544,
+      547,
+      550,
+      551,
+      554,
+      558,
+      562,
+      565,
+      566,
+      569
+    ],
+    "avoid_glycosylation_auth_residues": [],
+    "avoid_disulfide_auth_residues": [],
+    "avoid_other_ptm_auth_residues": [],
+    "missing_auth_residues_note": "missing residues have no atoms and cannot be highlighted"
+  }
+}

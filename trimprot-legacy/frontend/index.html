@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrimProt — Target-Prep Assistant</title>
+<script src="https://cdn.jsdelivr.net/npm/ngl@2.0.1/dist/ngl.js"></script>
+<script>
+  // Resolve theme before first paint to avoid a flash of the wrong palette.
+  (function () {
+    var saved = localStorage.getItem('trimprot-theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
+<style>
+  /* ──────────────────────────────────────────────────────────────────────
+     VIEWER BACKGROUND
+     The 3D molecular canvas is intentionally theme-INDEPENDENT: it stays the
+     same color in light and dark mode. To recolor it, change BOTH:
+       1. --viewer-bg below, and
+       2. the VIEWER_BG constant in the <script> block.
+     (NGL paints the canvas via JS, so the CSS var alone is not enough.)
+     ────────────────────────────────────────────────────────────────────── */
+  :root { --viewer-bg: #f4f6fb; }
+
+  /* ──────────────────────────────────────────────────────────────────────
+     CONTENT WIDTH
+     One knob for the overall page width. The header, status line, and main
+     results region all use --content-max. Use a percentage (e.g. 90%) for a
+     fluid full-width layout, or a px value to cap it. Default: 90% of screen.
+     ────────────────────────────────────────────────────────────────────── */
+  :root { --content-max: 90%; }
+
+  /* Light theme (also the base palette). */
+  :root,
+  html[data-theme="light"] {
+    --bg: #f6f8fb; --panel: #ffffff; --border: #e2e6ee; --text: #0f1729;
+    --muted: #5b6472; --accent: #2563eb; --avoid: #e23b3b; --hotspot: #0f9d6b;
+    --hover: #eef2f8; --chip: #f1f4fa; --shadow: 0 10px 30px rgba(15,23,41,0.10);
+  }
+  html[data-theme="dark"] {
+    --bg: #0f1116; --panel: #171a21; --border: #2a2e38; --text: #e6e8ee;
+    --muted: #9aa1ad; --accent: #4ea1ff; --avoid: #ff5c5c; --hotspot: #36d399;
+    --hover: #1f232c; --chip: #1f232c; --shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+
+  /* ── Header / landing ─────────────────────────────────────────────────── */
+  header { max-width: var(--content-max); margin: 0 auto; padding: 40px 24px 8px; }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  h1.brand { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+  h1.brand .trim { color: var(--accent); }
+  h1.brand .prot { color: var(--text); }
+  .tagline { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+  #theme-toggle { flex-shrink: 0; background: var(--panel); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; width: 38px; height: 38px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: border-color .15s, color .15s; }
+  #theme-toggle:hover { border-color: var(--accent); color: var(--text); }
+  #theme-toggle svg { width: 18px; height: 18px; }
+
+  .search-section { max-width: 720px; margin: 26px 0 0; }
+
+  /* ── Search box ───────────────────────────────────────────────────────── */
+  #search-wrap { position: relative; width: 100%; }
+  .search-field { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; box-shadow: var(--shadow); transition: border-color .15s, box-shadow .15s; }
+  .search-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.16); }
+  html[data-theme="dark"] .search-field:focus-within { box-shadow: 0 0 0 3px rgba(78,161,255,0.20); }
+  .search-field .icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--muted); }
+  #search-input { flex: 1; min-width: 0; background: transparent; border: none; color: var(--text); font-size: 15px; outline: none; }
+  #search-input::placeholder { color: var(--muted); }
+  .search-field .spinner { width: 16px; height: 16px; flex-shrink: 0; color: var(--muted); animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #clear-btn { flex-shrink: 0; background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px; border-radius: 4px; display: inline-flex; }
+  #clear-btn:hover { background: var(--hover); color: var(--text); }
+
+  #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-top: 8px; max-height: 380px; overflow-y: auto; z-index: 20; display: none; box-shadow: var(--shadow); padding: 4px 0; }
+  #suggestions .state { padding: 11px 14px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  #suggestions .state .spinner { width: 16px; height: 16px; flex-shrink: 0; color: var(--muted); animation: spin .7s linear infinite; }
+  #suggestions .state.error { color: var(--avoid); }
+  #suggestions .item { padding: 10px 14px; cursor: pointer; font-size: 14px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  #suggestions .item.active { background: var(--hover); }
+  #suggestions .item .left { min-width: 0; flex: 1; }
+  #suggestions .item .name { color: var(--text); font-weight: 500; }
+  #suggestions .item .genes { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  #suggestions .item .right { flex-shrink: 0; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  #suggestions .item .org { color: var(--muted); font-style: italic; }
+  #suggestions .item .acc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--chip); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; color: var(--text); }
+  #suggestions .item .acc.human { color: var(--hotspot); border-color: var(--hotspot); }
+  #suggestions .item .len { color: var(--muted); }
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  #status { max-width: var(--content-max); margin: 0 auto; padding: 10px 24px; color: var(--muted); font-size: 13px; display: none; }
+  #status.show { display: block; }
+
+  /* ── Results region (hidden until a protein is chosen) ────────────────── */
+  #results { display: none; }
+  main { max-width: var(--content-max); margin: 0 auto; display: flex; gap: 16px; padding: 8px 24px 32px; }
+  .col { flex: 1; min-width: 0; }
+
+  /* ── Protein title block ──────────────────────────────────────────────── */
+  .protein-head { margin-bottom: 14px; }
+  .protein-head .title-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+  .protein-head h2.pname { font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .protein-head .pgenes { color: var(--muted); font-size: 14px; }
+  .protein-head .pacc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--chip); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; font-size: 13px; }
+  .protein-head .pfacts { color: var(--muted); font-size: 13px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .protein-head .pfacts .org { font-style: italic; }
+  .protein-head .plinks { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .protein-head .plinks a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 12px; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; transition: border-color .15s, color .15s; }
+  .protein-head .plinks a:hover { border-color: var(--accent); color: var(--accent); }
+  .protein-head .plinks a svg { width: 12px; height: 12px; opacity: .7; }
+
+  /* ── Status banners (trimming + AlphaFold fallback) ──────────────────── */
+  .banner { display: flex; align-items: flex-start; gap: 10px; border-radius: 8px; padding: 10px 14px; font-size: 13px; line-height: 1.45; margin-bottom: 10px; border: 1px solid; }
+  .banner svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+  .banner-trimmed    { background: #ecfdf5; border-color: #6ee7b7; color: #065f46; }
+  .banner-not-trimmed{ background: var(--chip); border-color: var(--border); color: var(--muted); }
+  .banner-alphafold  { background: #fff7ed; border-color: #fdba74; color: #92400e; font-weight: 500; }
+  html[data-theme="dark"] .banner-trimmed     { background: #052e1c; border-color: #34d399; color: #6ee7b7; }
+  html[data-theme="dark"] .banner-not-trimmed { background: var(--chip); border-color: var(--border); color: var(--muted); }
+  html[data-theme="dark"] .banner-alphafold   { background: #2d1a06; border-color: #f97316; color: #fdba74; }
+
+  /* ── Viewers ──────────────────────────────────────────────────────────── */
+  .viewer-row { display: flex; gap: 12px; }
+  .viewer-card { flex: 1; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .viewer-card .title { padding: 8px 12px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; }
+  .viewer-card .stage { width: 100%; height: 420px; background: var(--viewer-bg); }
+  .legend { display:flex; gap:16px; padding: 8px 12px; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+  /* ── Panels / sidebar ─────────────────────────────────────────────────── */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; }
+  .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
+  .panel h3 { font-size: 12px; margin: 14px 0 4px; color: var(--text); }
+  .kv { display:grid; grid-template-columns: 160px 1fr; gap: 4px 12px; font-size: 13px; }
+  .kv div.k { color: var(--muted); }
+  .pill { display:inline-block; background:var(--chip); border:1px solid var(--border); border-radius:999px; padding:2px 8px; font-size:12px; margin: 2px; }
+  .pill.avoid { border-color: var(--avoid); color: var(--avoid); }
+  .pill.hotspot { border-color: var(--hotspot); color: var(--hotspot); }
+  a.btn, button.btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; text-decoration: none; cursor: pointer; font-weight: 600; }
+  a.btn-outline { display: inline-block; background: transparent; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; padding: 7px 14px; font-size: 13px; text-decoration: none; font-weight: 500; transition: border-color .15s, color .15s; }
+  a.btn-outline:hover { border-color: var(--accent); }
+  .dl-list { display: flex; flex-direction: column; gap: 8px; }
+  .dl-item { display: flex; flex-direction: column; gap: 3px; }
+  .dl-item .dl-desc { font-size: 12px; color: var(--muted); }
+  .reasoning { font-size: 13px; line-height: 1.5; color: var(--text); }
+  #sidebar { width: 380px; flex-shrink: 0; }
+  .resgrid { max-height: 140px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<header>
+  <div class="header-top">
+    <div>
+      <h1 class="brand"><span class="trim">Trim</span><span class="prot">Prot</span></h1>
+      <p class="tagline">Target-prep assistant for de novo binder design</p>
+    </div>
+    <button id="theme-toggle" type="button" aria-label="Toggle color theme"></button>
+  </div>
+  <div class="search-section">
+    <div id="search-wrap">
+      <div class="search-field">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="suggestions" aria-autocomplete="list"
+               placeholder="Search by protein name, gene symbol, or UniProt accession…" autocomplete="off" spellcheck="false">
+        <svg id="search-spinner" class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+        <button id="clear-btn" type="button" aria-label="Clear search" style="display:none"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+      </div>
+      <div id="suggestions" role="listbox"></div>
+    </div>
+  </div>
+</header>
+
+<div id="status">Idle.</div>
+
+<div id="results">
+<main>
+  <div class="col">
+    <div class="protein-head" id="protein-head"></div>
+
+    <div class="viewer-row">
+      <div class="viewer-card">
+        <div class="title"><span>Original structure</span><span id="orig-label">—</span></div>
+        <div class="stage" id="stage-orig"></div>
+      </div>
+      <div class="viewer-card">
+        <div class="title"><span>Trimmed extracellular domain</span><span id="trim-label">—</span></div>
+        <div class="stage" id="stage-trim"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#9aa1ad"></span>Backbone</span>
+      <span><span class="dot" style="background:var(--avoid)"></span>Avoid (glyco / disulfide / missing)</span>
+      <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
+      <span><span class="dot" style="background:#7a5cff"></span>Bound partner chain</span>
+    </div>
+
+    <div class="panel">
+      <h2>Structured summary</h2>
+      <div id="summary-body" class="reasoning">—</div>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div class="panel">
+      <h2>Downloads</h2>
+      <div id="downloads">—</div>
+    </div>
+    <div class="panel">
+      <h2>Avoid-residue regions</h2>
+      <div id="avoid-list" class="resgrid">—</div>
+    </div>
+    <div class="panel">
+      <h2>Candidate hotspots</h2>
+      <div id="hotspot-list" class="resgrid">—</div>
+    </div>
+  </div>
+</main>
+</div>
+
+<script>
+// Allow this file to be opened directly (file://) and still reach the API server,
+// since relative paths like "/api/run" can't be resolved against a file:// origin.
+const API_BASE = window.location.protocol === 'http:' || window.location.protocol === 'https:'
+  ? ''
+  : 'http://127.0.0.1:8000';
+
+// VIEWER BACKGROUND — keep in sync with --viewer-bg in the <style> block above.
+// Theme-independent on purpose: the 3D canvas stays this color in both themes.
+const VIEWER_BG = '#f4f6fb';
+
+const statusEl = document.getElementById('status');
+let stageOrig, stageTrim;
+
+function setStatus(msg, show) {
+  statusEl.textContent = msg;
+  statusEl.classList.toggle('show', show !== false && !!msg);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+// ── Theme ────────────────────────────────────────────────────────────────
+const SUN_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
+const MOON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
+
+function currentTheme() { return document.documentElement.dataset.theme; }
+
+function applyThemeIcon() {
+  // Show the icon for the theme you'd switch TO.
+  document.getElementById('theme-toggle').innerHTML = currentTheme() === 'dark' ? SUN_SVG : MOON_SVG;
+}
+
+function toggleTheme() {
+  const next = currentTheme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('trimprot-theme', next);
+  applyThemeIcon();
+}
+
+// ── Structure viewers ────────────────────────────────────────────────────
+function colorSchemeFor(authChain, avoidSet, hotspotSet, partnerChains) {
+  return NGL.ColormakerRegistry.addSelectionScheme([
+    [ "purple", partnerChains.map(c => `:${c}`).join(' or ') || "none" ],
+    [ "red", avoidSet.size ? `(${[...avoidSet].join(', ')}) and :${authChain}` : "none" ],
+    [ "green", hotspotSet.size ? `(${[...hotspotSet].join(', ')}) and :${authChain}` : "none" ],
+    // Catch-all: a mid grey that stays visible on the light viewer background.
+    [ "slategrey", "*" ],
+  ]);
+}
+
+async function loadStructure(stage, fileUrl, ext, authChain, avoidSet, hotspotSet, partnerChains) {
+  stage.removeAllComponents();
+  const comp = await stage.loadFile(fileUrl, { ext });
+  const scheme = colorSchemeFor(authChain, avoidSet, hotspotSet, partnerChains);
+  comp.addRepresentation('cartoon', { color: scheme });
+  comp.addRepresentation('ball+stick', {
+    sele: avoidSet.size ? `(${[...avoidSet].join(', ')}) and :${authChain}` : 'none',
+    color: 'red',
+  });
+  comp.addRepresentation('ball+stick', {
+    sele: hotspotSet.size ? `(${[...hotspotSet].join(', ')}) and :${authChain}` : 'none',
+    color: 'green',
+  });
+  stage.handleResize();
+  stage.autoView();
+}
+
+// ── Protein title block ──────────────────────────────────────────────────
+const LINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>';
+
+const CHECK_SVG    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+const DASH_SVG     = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>';
+const WARNING_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+
+function renderProteinHead(data) {
+  const t = data.target, ed = data.extracellular_domain, ss = data.structure_selection;
+  const acc = t.uniprot_accession, pdb = ss.chosen_pdb_id;
+  const genes = (t.gene_names && t.gene_names.length) ? esc(t.gene_names.slice(0, 4).join(', ')) : '';
+  const isAF = !!data.alphafold_fallback;
+  const isTrimmed = ed && ed.trimming_decision && ed.trimming_decision.trimmed;
+
+  const facts = [];
+  if (t.organism) facts.push(`<span class="org">${esc(t.organism)}</span>`);
+  if (t.length) facts.push(`${t.length} aa full length`);
+  if (ed && ed.start && ed.end) facts.push(`ECD residues ${ed.start}–${ed.end}`);
+  if (pdb) facts.push(`PDB ${esc(pdb)}${ss.resolution ? ` · ${ss.resolution} Å` : ''}`);
+
+  const trimReason = ed && ed.trimming_decision ? esc(ed.trimming_decision.reason) : '';
+  const trimBanner = isTrimmed
+    ? `<div class="banner banner-trimmed">${CHECK_SVG}<span><strong>Trimmed to extracellular domain</strong> — ${trimReason}</span></div>`
+    : `<div class="banner banner-not-trimmed">${DASH_SVG}<span><strong>No trimming performed</strong>${trimReason ? ' — ' + trimReason : ''}</span></div>`;
+
+  const afBanner = isAF
+    ? `<div class="banner banner-alphafold">${WARNING_SVG}<span><strong>AlphaFold prediction used</strong> — No PDB crystal structure with adequate extracellular-domain coverage was found. This structure is a computational model; confidence varies by region (pLDDT shown in avoid-residue list).</span></div>`
+    : '';
+
+  const links = [
+    ['UniProt', `https://www.uniprot.org/uniprotkb/${encodeURIComponent(acc)}/entry`],
+    ...(pdb ? [
+      ['RCSB PDB', `https://www.rcsb.org/structure/${encodeURIComponent(pdb)}`],
+      ['PDBe', `https://www.ebi.ac.uk/pdbe/entry/pdb/${encodeURIComponent(String(pdb).toLowerCase())}`],
+    ] : []),
+    ['AlphaFold', `https://alphafold.ebi.ac.uk/entry/${encodeURIComponent(acc)}`],
+  ];
+
+  document.getElementById('protein-head').innerHTML = `
+    ${afBanner}
+    ${trimBanner}
+    <div class="title-row">
+      <h2 class="pname">${esc(t.protein_name || t.uniprot_id || acc)}</h2>
+      ${genes ? `<span class="pgenes">${genes}</span>` : ''}
+      <span class="pacc">${esc(acc)}</span>
+    </div>
+    <div class="pfacts">${facts.join('<span aria-hidden="true">·</span>')}</div>
+    <div class="plinks">
+      ${links.map(([label, href]) => `<a href="${href}" target="_blank" rel="noopener">${LINK_ICON}${label}</a>`).join('')}
+    </div>
+  `;
+}
+
+// ── Summary / sidebar ────────────────────────────────────────────────────
+function renderSummary(data) {
+  const t = data.target, ed = data.extracellular_domain, ss = data.structure_selection,
+        tr = data.trimming, av = data.avoid_residues, hs = data.hotspots, viewer = data.viewer;
+
+  renderProteinHead(data);
+
+  document.getElementById('orig-label').textContent = viewer.pdb_id + ' (full)';
+  document.getElementById('trim-label').textContent = viewer.pdb_id + ' (ECD only)';
+
+  const structureRow = ss.chosen_pdb_id
+    ? `<div class="k">Chosen PDB</div><div>${esc(ss.chosen_pdb_id)} (${ss.resolution} &Aring;, chain ${esc(viewer.auth_chain)})</div>`
+    : `<div class="k">Structure source</div><div>AlphaFold model (AF-${esc(t.uniprot_accession)}), chain ${esc(viewer.auth_chain)}</div>`;
+
+  document.getElementById('summary-body').innerHTML = `
+    <div class="kv">
+      <div class="k">UniProt</div><div>${esc(t.uniprot_accession)} (${esc(t.uniprot_id)})</div>
+      <div class="k">Isoform</div><div>${esc(t.isoform)}</div>
+      <div class="k">ECD boundaries</div><div>residues ${ed.start}–${ed.end} (UniProt numbering)</div>
+      <div class="k">Trim decision</div><div>${ed.trimming_decision.trimmed ? 'Trimmed' : 'Not trimmed'} — ${esc(ed.trimming_decision.reason)}</div>
+      ${structureRow}
+      <div class="k">${ss.chosen_pdb_id ? 'Why this PDB' : 'Structure reason'}</div><div>${esc(ss.reason)}</div>
+      <div class="k">Residues trimmed</div><div>${tr.residues_trimmed_away} of ${tr.residues_in_original_chain} chain residues removed; ${tr.residues_kept} kept</div>
+      <div class="k">Missing/unresolved</div><div>${tr.missing_unresolved_label_positions.length} positions unresolved in this structure</div>
+      <div class="k">Avoid-residue counts</div><div>${av.counts.glycosylation} glyco · ${av.counts.disulfide_cysteines} disulfide · ${av.counts.other_ptms} other PTM · ${av.counts.missing_unresolved} missing</div>
+      <div class="k">Hotspot source</div><div>${esc(hs.source)}</div>
+      <div class="k">Hotspot count</div><div>${hs.count} candidate residues</div>
+    </div>
+  `;
+
+  const isAF = !!data.alphafold_fallback;
+  const isTrimmed = ed && ed.trimming_decision && ed.trimming_decision.trimmed;
+  const pdbId = viewer.pdb_id;
+
+  let dlHTML = '<div class="dl-list">';
+  if (isAF) {
+    dlHTML += `
+      <div class="dl-item">
+        <a class="btn" href="${API_BASE}/api/files/${viewer.original_file}" download>
+          Download AlphaFold full model (PDB)
+        </a>
+        <span class="dl-desc">Complete ${esc(pdbId)} prediction, all residues</span>
+      </div>`;
+    if (isTrimmed) {
+      dlHTML += `
+      <div class="dl-item">
+        <a class="btn" href="${API_BASE}/api/files/${viewer.trimmed_file}" download>
+          Download AlphaFold trimmed ECD (PDB)
+        </a>
+        <span class="dl-desc">Extracellular domain only — residues ${ed.start}–${ed.end}</span>
+      </div>`;
+    }
+    dlHTML += `
+      <div class="dl-item">
+        <a class="btn-outline" href="${API_BASE}/api/files/${viewer.original_cif_file}" download>
+          Download full model (mmCIF)
+        </a>
+        <span class="dl-desc">Complete ${esc(pdbId)} prediction in mmCIF format</span>
+      </div>`;
+  } else {
+    dlHTML += `
+      <div class="dl-item">
+        <a class="btn" href="${API_BASE}/api/files/${viewer.trimmed_file}" download>
+          Download ${esc(pdbId)} trimmed ECD (PDB)
+        </a>
+        <span class="dl-desc">Extracellular domain only — residues ${ed.start}–${ed.end}</span>
+      </div>
+      <div class="dl-item">
+        <a class="btn-outline" href="${API_BASE}/api/files/${viewer.original_file}" download>
+          Download ${esc(pdbId)} full structure (PDB)
+        </a>
+        <span class="dl-desc">Complete crystal structure, all chains</span>
+      </div>
+      <div class="dl-item">
+        <a class="btn-outline" href="${API_BASE}/api/files/${viewer.original_cif_file}" download>
+          Download ${esc(pdbId)} full structure (mmCIF)
+        </a>
+        <span class="dl-desc">Complete crystal structure in mmCIF format</span>
+      </div>`;
+  }
+  dlHTML += '</div>';
+  document.getElementById('downloads').innerHTML = dlHTML;
+
+  document.getElementById('avoid-list').innerHTML =
+    av.glycosylation_sites.map(s => `<span class="pill avoid" title="glycosylation">N${s.unp_position}</span>`).join('') +
+    av.disulfide_cysteines.map(s => `<span class="pill avoid" title="disulfide cysteine">C${s.unp_position}</span>`).join('') +
+    av.other_ptms.map(s => `<span class="pill avoid" title="${s.ptm_type}: ${s.description}">${s.ptm_type[0]}${s.unp_position}</span>`).join('') +
+    av.missing_unresolved.map(s => `<span class="pill avoid" title="missing/unresolved">?${s.unp_position}</span>`).join('');
+
+  document.getElementById('hotspot-list').innerHTML =
+    hs.candidate_residues_unp.map(p => `<span class="pill hotspot">${p}</span>`).join('') || 'None identified';
+}
+
+let selectedAccession = null;
+
+async function runPipeline() {
+  if (!selectedAccession) return;
+  const acc = selectedAccession;
+  // Reveal the results region before structures load so NGL frames the camera
+  // against the laid-out canvas size (see handleResize/autoView note in CLAUDE.md).
+  document.getElementById('results').style.display = 'block';
+  setStatus(`Running pipeline for ${acc} (UniProt lookup, PDB ranking, trimming, annotation)…`);
+  try {
+    const res = await fetch(`${API_BASE}/api/run?accession=${encodeURIComponent(acc)}`);
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    renderSummary(data);
+
+    const v = data.viewer;
+    const avoidAuth = new Set([...v.avoid_glycosylation_auth_residues, ...v.avoid_disulfide_auth_residues, ...v.avoid_other_ptm_auth_residues]);
+    const hotspotAuth = new Set(v.hotspot_auth_residues);
+
+    await loadStructure(stageOrig, `${API_BASE}/api/files/${v.original_file}`, 'pdb', v.auth_chain, avoidAuth, hotspotAuth, v.partner_chains);
+    await loadStructure(stageTrim, `${API_BASE}/api/files/${v.trimmed_file}`, 'pdb', v.auth_chain, avoidAuth, hotspotAuth, []);
+
+    setStatus(`Done. Selected ${v.pdb_id}, chain ${v.auth_chain}.`);
+  } catch (e) {
+    setStatus('Error: ' + e.message);
+  }
+}
+
+// ── Lookahead search ─────────────────────────────────────────────────────
+let searchDebounce = null;
+let searchAbort = null;
+let searchResults = [];
+let activeIndex = 0;
+let suppressSearch = false;   // true right after a selection, so we don't re-search the filled-in value
+
+function setSearchExpanded(expanded) {
+  document.getElementById('search-input').setAttribute('aria-expanded', expanded ? 'true' : 'false');
+}
+
+function hideSuggestions() {
+  document.getElementById('suggestions').style.display = 'none';
+  setSearchExpanded(false);
+}
+
+function showState(html, cls) {
+  const box = document.getElementById('suggestions');
+  box.innerHTML = `<div class="state ${cls || ''}">${html}</div>`;
+  box.style.display = 'block';
+  setSearchExpanded(true);
+}
+
+const SPINNER_SVG = '<svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
+
+function renderResults(query) {
+  const box = document.getElementById('suggestions');
+  if (!searchResults.length) {
+    showState(`No proteins found matching &ldquo;${esc(query)}&rdquo;.`);
+    return;
+  }
+  box.innerHTML = searchResults.map((c, i) => `
+    <div class="item ${i === activeIndex ? 'active' : ''}" role="option" data-index="${i}" aria-selected="${i === activeIndex}">
+      <div class="left">
+        <span class="name">${esc(c.protein_name)}</span>${c.gene_names && c.gene_names.length ? `<span class="genes">${esc(c.gene_names.slice(0, 3).join(', '))}</span>` : ''}
+      </div>
+      <div class="right">
+        <span class="org">${esc(c.organism)}</span>
+        <span class="acc ${c.is_human ? 'human' : ''}">${esc(c.accession)}</span>
+        ${c.length ? `<span class="len">${c.length} aa</span>` : ''}
+      </div>
+    </div>
+  `).join('');
+  box.style.display = 'block';
+  setSearchExpanded(true);
+
+  box.querySelectorAll('.item').forEach(el => {
+    const i = Number(el.dataset.index);
+    el.addEventListener('mouseenter', () => { activeIndex = i; updateActive(); });
+    el.addEventListener('mousedown', (e) => { e.preventDefault(); selectResult(searchResults[i]); });
+  });
+}
+
+function updateActive() {
+  const box = document.getElementById('suggestions');
+  box.querySelectorAll('.item').forEach(el => {
+    const on = Number(el.dataset.index) === activeIndex;
+    el.classList.toggle('active', on);
+    el.setAttribute('aria-selected', on ? 'true' : 'false');
+    if (on) el.scrollIntoView({ block: 'nearest' });
+  });
+}
+
+function selectResult(c) {
+  if (!c) return;
+  suppressSearch = true;
+  selectedAccession = c.accession;
+  document.getElementById('search-input').value = `${c.protein_name} (${c.accession})`;
+  hideSuggestions();
+  searchResults = [];
+  document.getElementById('search-input').blur();
+  runPipeline();
+}
+
+async function doSearch(q) {
+  const query = (q || '').trim();
+  if (query.length < 2) { searchResults = []; hideSuggestions(); return; }
+
+  if (searchAbort) searchAbort.abort();
+  searchAbort = new AbortController();
+  document.getElementById('search-spinner').style.display = 'block';
+  showState(`${SPINNER_SVG}Searching UniProt…`);
+
+  try {
+    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`, { signal: searchAbort.signal });
+    if (!res.ok) throw new Error('bad status');
+    searchResults = await res.json();
+    activeIndex = 0;
+    renderResults(query);
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    searchResults = [];
+    showState("Couldn't reach UniProt. Try again in a moment.", 'error');
+  } finally {
+    document.getElementById('search-spinner').style.display = 'none';
+  }
+}
+
+function onSearchKeyDown(e) {
+  const box = document.getElementById('suggestions');
+  const open = box.style.display === 'block';
+  if (e.key === 'Escape') { hideSuggestions(); return; }
+  if (!open) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (!searchResults.length) return;
+    activeIndex = (activeIndex + 1) % searchResults.length;
+    updateActive();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    if (!searchResults.length) return;
+    activeIndex = (activeIndex - 1 + searchResults.length) % searchResults.length;
+    updateActive();
+  } else if (e.key === 'Enter') {
+    if (searchResults[activeIndex]) { e.preventDefault(); selectResult(searchResults[activeIndex]); }
+  }
+}
+
+function clearSearch() {
+  const input = document.getElementById('search-input');
+  input.value = '';
+  searchResults = [];
+  hideSuggestions();
+  document.getElementById('clear-btn').style.display = 'none';
+  input.focus();
+}
+
+window.addEventListener('load', () => {
+  stageOrig = new NGL.Stage('stage-orig', { backgroundColor: VIEWER_BG });
+  stageTrim = new NGL.Stage('stage-trim', { backgroundColor: VIEWER_BG });
+  window.addEventListener('resize', () => { stageOrig.handleResize(); stageTrim.handleResize(); });
+
+  applyThemeIcon();
+  document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+  // Apply OS theme changes live, but only while the user hasn't picked explicitly.
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    if (localStorage.getItem('trimprot-theme')) return;
+    document.documentElement.dataset.theme = e.matches ? 'dark' : 'light';
+    applyThemeIcon();
+  });
+
+  const input = document.getElementById('search-input');
+  const clearBtn = document.getElementById('clear-btn');
+
+  input.addEventListener('input', () => {
+    clearBtn.style.display = input.value.length ? 'inline-flex' : 'none';
+    if (suppressSearch) { suppressSearch = false; return; }
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => doSearch(input.value), 250);
+  });
+  input.addEventListener('keydown', onSearchKeyDown);
+  input.addEventListener('focus', () => {
+    if (searchResults.length) document.getElementById('suggestions').style.display = 'block';
+  });
+  clearBtn.addEventListener('click', clearSearch);
+
+  document.addEventListener('mousedown', (e) => {
+    if (!document.getElementById('search-wrap').contains(e.target)) hideSuggestions();
+  });
+
+  input.focus();
+});
+</script>
+</body>
+</html>

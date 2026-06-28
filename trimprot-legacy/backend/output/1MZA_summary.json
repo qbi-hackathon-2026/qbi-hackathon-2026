@@ -1,0 +1,122 @@
+{
+  "target": {
+    "uniprot_accession": "P49863",
+    "uniprot_id": "GRAK_HUMAN",
+    "isoform": "Canonical sequence GRAK_HUMAN (264 aa); no isoform selection needed (single reviewed canonical isoform used).",
+    "accession": "P49863",
+    "id": "GRAK_HUMAN",
+    "protein_name": "Granzyme K",
+    "gene_names": [
+      "GZMK",
+      "TRYP2"
+    ],
+    "organism": "Homo sapiens",
+    "is_human": true,
+    "length": 264
+  },
+  "extracellular_domain": {
+    "start": 1,
+    "end": 264,
+    "trimming_decision": {
+      "trimmed": false,
+      "reason": "No transmembrane region annotated; target may already be extracellular."
+    }
+  },
+  "structure_selection": {
+    "chosen_pdb_id": "1MZA",
+    "resolution": 2.23,
+    "ecd_coverage": 0.909,
+    "has_known_partner": false,
+    "rank_score": 10.861,
+    "reason": "Selected 1MZA from 2 candidate structures: best combination of extracellular-domain coverage (91%), resolution (2.23 A).",
+    "top_alternatives": [
+      {
+        "pdb_id": "1MZD",
+        "resolution": 2.9,
+        "ecd_coverage": 0.909,
+        "has_partner": false,
+        "score": 10.191
+      }
+    ]
+  },
+  "trimming": {
+    "auth_chain": "A",
+    "residues_in_original_chain": 240,
+    "residues_kept": 240,
+    "residues_trimmed_away": 0,
+    "missing_unresolved_label_positions": []
+  },
+  "avoid_residues": {
+    "glycosylation_sites": [],
+    "disulfide_cysteines": [
+      {
+        "unp_position": 52,
+        "auth_seq_num": 42
+      },
+      {
+        "unp_position": 68,
+        "auth_seq_num": 58
+      },
+      {
+        "unp_position": 149,
+        "auth_seq_num": 136
+      },
+      {
+        "unp_position": 220,
+        "auth_seq_num": 201
+      },
+      {
+        "unp_position": 181,
+        "auth_seq_num": 168
+      },
+      {
+        "unp_position": 199,
+        "auth_seq_num": 182
+      },
+      {
+        "unp_position": 210,
+        "auth_seq_num": 191
+      },
+      {
+        "unp_position": 234,
+        "auth_seq_num": 220
+      }
+    ],
+    "other_ptms": [],
+    "missing_unresolved": [],
+    "counts": {
+      "glycosylation": 0,
+      "disulfide_cysteines": 8,
+      "other_ptms": 0,
+      "missing_unresolved": 0
+    }
+  },
+  "hotspots": {
+    "source": "inferred surface-exposed residues (no bound partner in chosen structure)",
+    "partner_chains": [],
+    "candidate_residues_unp": [],
+    "count": 0
+  },
+  "viewer": {
+    "pdb_id": "1MZA",
+    "auth_chain": "A",
+    "partner_chains": [],
+    "original_file": "1MZA_full.pdb",
+    "original_cif_file": "1MZA_full.cif",
+    "trimmed_file": "1MZA_ECD_trimmed.pdb",
+    "hotspot_auth_residues": [],
+    "avoid_glycosylation_auth_residues": [],
+    "avoid_disulfide_auth_residues": [
+      42,
+      58,
+      136,
+      168,
+      182,
+      191,
+      201,
+      220
+    ],
+    "avoid_other_ptm_auth_residues": [],
+    "missing_auth_residues_note": "missing residues have no atoms and cannot be highlighted"
+  }
+}
