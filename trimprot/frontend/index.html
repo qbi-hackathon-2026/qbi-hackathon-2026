@@ -133,7 +133,8 @@
   .kv div.k { color: var(--muted); }
   .pill { display:inline-block; background:var(--chip); border:1px solid var(--border); border-radius:999px; padding:2px 8px; font-size:12px; margin: 2px; }
   .pill.avoid { border-color: var(--avoid); color: var(--avoid); }
-  .pill.hotspot { border-color: var(--hotspot); color: var(--hotspot); }
+  .pill.hotspot { border-color: var(--hotspot); color: var(--hotspot); cursor: pointer; }
+  .pill.hotspot.selected { background: var(--hotspot); color: #fff; }
   a.btn, button.btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; text-decoration: none; cursor: pointer; font-weight: 600; }
   .reasoning { font-size: 13px; line-height: 1.5; color: var(--text); }
   #sidebar { width: 380px; flex-shrink: 0; }
@@ -300,7 +301,7 @@ function confidenceBuckets(confidenceByAuth, metric) {
   return buckets;
 }
 
-function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, partnerChains, confidenceByAuth, confidenceMetric, mode }) {
+function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, partnerChains, confidenceByAuth, confidenceMetric, mode, selectedAuth }) {
   const builder = molstar.PluginExtensions.mvs.createBuilder();
   builder.canvas({ background_color: '#171a21' });
   const structure = builder.download({ url: fileUrl }).parse({ format: 'pdb' }).modelStructure();
@@ -336,6 +337,15 @@ function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, par
   if (hotspotAuthList.length) {
     structure.component({ selector: hotspotAuthList.map(n => ({ auth_asym_id: authChain, auth_seq_id: n })) })
       .representation({ type: 'ball_and_stick' }).color({ color: '#36d399' });
+  }
+
+  // Drawn last so it renders on top of avoid/hotspot ball-and-stick layers -
+  // a distinct bright color makes the clicked pill's residue stand out even
+  // when it's also a hotspot or avoid residue.
+  if (selectedAuth != null) {
+    const selComponent = structure.component({ selector: { auth_asym_id: authChain, auth_seq_id: selectedAuth } });
+    selComponent.representation({ type: 'ball_and_stick' }).color({ color: '#ffe14d' });
+    if (typeof selComponent.focus === 'function') selComponent.focus();
   }
 
   return JSON.stringify(builder.getState());
@@ -383,10 +393,21 @@ async function setVizMode(mode) {
 async function loadStructure(viewer, fileUrl, authChain, avoidSet, hotspotSet, partnerChains, confidenceByAuth, confidenceMetric) {
   const entry = {
     viewer, fileUrl, authChain, avoidAuthList: [...avoidSet], hotspotAuthList: [...hotspotSet], partnerChains,
-    confidenceByAuth: confidenceByAuth || {}, confidenceMetric: confidenceMetric || null,
+    confidenceByAuth: confidenceByAuth || {}, confidenceMetric: confidenceMetric || null, selectedAuth: null,
   };
   loadedViewers.push(entry);
   await applyVizMode(entry, vizMode);
+}
+
+// Clicking a hotspot pill highlights that residue (in its auth numbering) across
+// both viewers; clicking the already-selected pill again clears the highlight.
+async function focusHotspot(authNum, pillEl) {
+  const next = loadedViewers[0] && loadedViewers[0].selectedAuth === authNum ? null : authNum;
+  loadedViewers.forEach(entry => { entry.selectedAuth = next; });
+  document.querySelectorAll('#hotspot-list .pill.hotspot').forEach(el => {
+    el.classList.toggle('selected', next != null && Number(el.dataset.auth) === next);
+  });
+  await Promise.all(loadedViewers.map(entry => applyVizMode(entry, vizMode)));
 }
 
 function renderAvoidPills(av) {
@@ -483,8 +504,12 @@ function renderSummary(data) {
   `;
   document.getElementById('show-all-avoid').addEventListener('click', showFullAvoidList);
 
+  const hotspotPairs = viewer.hotspot_residue_pairs || hs.candidate_residues_unp.map(p => [p, p]);
   document.getElementById('hotspot-list').innerHTML =
-    hs.candidate_residues_unp.map(p => `<span class="pill hotspot">${p}</span>`).join('') || 'None identified';
+    hotspotPairs.map(([unp, auth]) => `<span class="pill hotspot" data-auth="${auth}" title="auth residue ${auth} — click to highlight">${unp}</span>`).join('') || 'None identified';
+  document.querySelectorAll('#hotspot-list .pill.hotspot').forEach(el => {
+    el.addEventListener('click', () => focusHotspot(Number(el.dataset.auth), el));
+  });
   document.getElementById('other-contacts').textContent = hs.other_interface_contacts_count
     ? `Other interface contacts (not hydrophobic-preferred): ${hs.other_interface_contacts_unp}`
     : '';
