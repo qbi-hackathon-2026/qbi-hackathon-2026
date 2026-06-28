@@ -252,7 +252,7 @@ const $ = id => document.getElementById(id);
 const statusEl = $('status');
 let leftView, rightView;
 let _patch = [];
-let patchFocused = false;
+let patchFocus = null;
 
 function setStatus(msg, show) { statusEl.innerHTML = msg; statusEl.classList.toggle('show', show !== false && !!msg); }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
@@ -312,16 +312,26 @@ function enableHover(v) {
           fontSize: 13, borderColor: '0x33cc33', borderThickness: 0.4 }); vw.render(); },
     (atom, vw) => { if (atom.hoverlabel) { vw.removeLabel(atom.hoverlabel); delete atom.hoverlabel; vw.render(); } });
 }
+// patchFocus: null (nothing focused), 'all' (whole-patch button), or a single residue number.
 function focusPatch() {
   if (!rightView || !_patch.length) return;
-  patchFocused = !patchFocused;
-  rightView.zoomTo(patchFocused ? { resi: _patch } : undefined);
+  patchFocus = patchFocus === 'all' ? null : 'all';
+  rightView.zoomTo(patchFocus === 'all' ? { resi: _patch } : undefined);
+  rightView.render();
+  updatePatchFocusUI();
+}
+function focusPatchResidue(resi) {
+  if (!rightView) return;
+  patchFocus = patchFocus === resi ? null : resi;
+  rightView.zoomTo(patchFocus === resi ? { resi: [resi] } : undefined);
   rightView.render();
   updatePatchFocusUI();
 }
 function updatePatchFocusUI() {
-  $('focus-patch').classList.toggle('active', patchFocused);
-  document.querySelectorAll('#patch-list .pill.patch').forEach(el => el.classList.toggle('active', patchFocused));
+  $('focus-patch').classList.toggle('active', patchFocus === 'all');
+  document.querySelectorAll('#patch-list .pill.patch').forEach(el => {
+    el.classList.toggle('active', patchFocus === 'all' || String(patchFocus) === el.dataset.resi);
+  });
 }
 
 // ── Protein header ────────────────────────────────────────────────────────
@@ -421,7 +431,7 @@ function renderSummary(s) {
 
   const patch = (s.viewer && s.viewer.patch_auth_residues) || [];
   $('patch-list').className = 'resgrid';
-  $('patch-list').innerHTML = patch.length ? patch.map(n => `<span class="pill patch" onclick="focusPatch()" title="focus in viewer">${n}</span>`).join('') : 'None';
+  $('patch-list').innerHTML = patch.length ? patch.map(n => `<span class="pill patch" data-resi="${n}" onclick="focusPatchResidue(${n})" title="focus this residue in viewer">${n}</span>`).join('') : 'None';
   updatePatchFocusUI();
 }
 
@@ -456,7 +466,7 @@ async function runPipeline() {
   $('results').style.display = 'block';
   setStatus(`Running pipeline for <strong>${esc(selectedTarget)}</strong> (UniProt → PDB ranking → trim → annotate)… <span style="opacity:.7">~10–30s</span>`);
   leftView = rightView = null;
-  patchFocused = false;
+  patchFocus = null;
   $('warnings').innerHTML = '';
   try {
     const resp = await fetch(`${API_BASE}/api/run?target=${encodeURIComponent(selectedTarget)}`);
