@@ -148,6 +148,15 @@
   .reasoning { font-size: 13px; line-height: 1.5; color: var(--text); }
   #sidebar { width: 380px; flex-shrink: 0; }
   .resgrid { max-height: 140px; overflow-y: auto; }
+
+  /* On narrow windows the fixed 380px sidebar would squeeze the viewer column to
+     zero width (the 3D structure would vanish). Stack the layout instead: main
+     content above, sidebar below, and the two viewer panes one over the other. */
+  @media (max-width: 1000px) {
+    main { flex-direction: column; }
+    #sidebar { width: auto; }
+    .viewer-row { flex-direction: column; }
+  }
 </style>
 </head>
 <body>
