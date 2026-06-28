@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/bonsai-logo.svg" alt="Bonsai logo" width="96" />
+
 # Bonsai
 
 **Deterministic protein target-preparation for de novo binder design.**
