@@ -45,6 +45,35 @@ def format_hotspot_string(hotspots: list[Hotspot]) -> str:
     return ",".join(tokens)
 
 
+_INTRACELLULAR_TERMS = {"nucleus", "cytoplasm", "cytosol", "mitochondri",
+                        "endosome", "lysosome", "peroxisome", "ribosom",
+                        "endoplasmic reticulum", "golgi"}
+_SECRETED_TERMS = {"secreted", "extracellular"}
+
+
+def _localization(result: "PipelineResult") -> dict:
+    has_tm = bool(result.transmem_ranges)
+    has_ecd = bool(result.ecd_ranges)
+    has_signal = any(f.kind == "SIGNAL" for f in result.record.features)
+    subcell = result.record.subcellular_locations
+    subcell_lower = " ".join(subcell).lower()
+
+    if has_tm and has_ecd:
+        kind, label = "transmembrane_with_ecd", "Transmembrane + ECD"
+    elif has_tm:
+        kind, label = "transmembrane", "Transmembrane"
+    elif has_signal or any(t in subcell_lower for t in _SECRETED_TERMS):
+        kind, label = "secreted", "Secreted / Extracellular"
+    elif subcell and any(t in subcell_lower for t in _INTRACELLULAR_TERMS):
+        kind, label = "intracellular", "Intracellular"
+    elif subcell:
+        kind, label = "other", subcell[0]
+    else:
+        kind, label = "unknown", "Unknown localization"
+
+    return {"kind": kind, "label": label, "subcellular_locations": subcell}
+
+
 def build_summary(result: PipelineResult) -> dict:
     rec = result.record
     mp = result.membrane_proximal
@@ -55,6 +84,7 @@ def build_summary(result: PipelineResult) -> dict:
         "protein_name": rec.protein_name,
         "function": rec.function,
         "organism_id": rec.organism_id,
+        "localization": _localization(result),
         "viewer": {
             "target_chain": result.trim.target_chain,
             "kept_chains": result.trim.kept_chains,
