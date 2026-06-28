@@ -1,6 +1,6 @@
 <div align="center">
 
-# BindScout
+# Bonsai
 
 **Deterministic protein target-preparation for de novo binder design.**
 
@@ -14,7 +14,7 @@ To design a new binder (an antibody or mini-protein that sticks to a disease
 target), you first have to prepare that target structurally. Today a structural
 biologist does this by hand, and it can take hours per target.
 
-BindScout automates it. Give BindScout a protein (a gene name, protein name, or
+Bonsai automates it. Give Bonsai a protein (a gene name, protein name, or
 UniProt accession) and it prepares a design-ready target: it resolves the UniProt
 entry, finds and ranks structures, trims to the relevant domain, identifies
 candidate **hotspot** residues and an epitope **patch**, builds an **avoid** set,
@@ -67,7 +67,7 @@ cd qbi-hackathon-2026/bindscout
 uv sync
 ```
 
-You're ready — see [Running BindScout](#running-bindscout) below.
+You're ready — see [Running Bonsai](#running-bonsai) below.
 
 </details>
 
@@ -96,13 +96,13 @@ cd qbi-hackathon-2026\bindscout
 uv sync
 ```
 
-You're ready — see [Running BindScout](#running-bindscout) below.
+You're ready — see [Running Bonsai](#running-bonsai) below.
 
 </details>
 
 ---
 
-## Running BindScout
+## Running Bonsai
 
 Start the web app from the `bindscout` folder:
 
@@ -122,7 +122,7 @@ Then:
    green, the epitope patch in orange — with chain/domain labels, per-residue
    hover, and a "focus patch" button.
 3. **Download** the prepared artifacts from the page (see [Output](#output)).
-4. **Ask BindScout** (optional) — click the chat panel to ask about the loaded
+4. **Ask Bonsai** (optional) — click the chat panel to ask about the loaded
    target or re-run the pipeline with different settings in plain English. The
    assistant needs an Anthropic API key: copy `bindscout/.env.example` to
    `bindscout/.env` and set `ANTHROPIC_API_KEY` (get one at
@@ -153,7 +153,7 @@ To stop the app, click its terminal window and press **Ctrl + C**.
 
 ## Output
 
-For each target, BindScout emits files under `bindscout/outputs/<TARGET>/`,
+For each target, Bonsai emits files under `bindscout/outputs/<TARGET>/`,
 downloadable from the page:
 
 - `trimmed.pdb` — the design-ready trimmed target (author numbering preserved)
@@ -165,13 +165,13 @@ downloadable from the page:
 
 ---
 
-## Ask BindScout (chat assistant)
+## Ask Bonsai (chat assistant)
 
 A chat panel in the web app that answers questions about the target you've loaded
 and can re-run the pipeline in plain English. Claude orchestrates the **same
 deterministic tools** the app already uses, so answers are grounded in real
 pipeline output — not guessed. Requires `ANTHROPIC_API_KEY` (see
-[Running BindScout](#running-bindscout)); the rest of the app works without it.
+[Running Bonsai](#running-bonsai)); the rest of the app works without it.
 
 **Try asking:**
 
@@ -185,7 +185,7 @@ pipeline output — not guessed. Requires `ANTHROPIC_API_KEY` (see
 
 ---
 
-## How BindScout picks a structure
+## How Bonsai picks a structure
 
 <details>
 <summary><b>How the selection ladder works</b></summary>
@@ -208,7 +208,7 @@ which can be downloaded.
 ## Correctness guarantees
 
 <details>
-<summary><b>The structural details BindScout handles correctly</b></summary>
+<summary><b>The structural details Bonsai handles correctly</b></summary>
 
 <br>
 
@@ -254,4 +254,4 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to contribute.
 
 ## License
 
-[MIT](LICENSE) © BindScout contributors.
+[MIT](LICENSE) © Bonsai contributors.
