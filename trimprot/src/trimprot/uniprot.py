@@ -8,6 +8,7 @@ All positions are 1-based UniProt numbering.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -181,3 +182,84 @@ def resolve_uniprot(name: Optional[str] = None, *, accession: Optional[str] = No
         raise ValueError("resolve_uniprot requires either name or accession")
     acc = _search_accession(name, organism_id)
     return fetch_entry(acc)
+
+
+# ── Typeahead search (UI dropdown) ────────────────────────────────────────────
+# Official UniProtKB accession pattern.
+ACCESSION_RE = re.compile(
+    r"^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$",
+    re.IGNORECASE,
+)
+
+
+def _candidate_from_search_hit(item: dict) -> dict:
+    """Shape a UniProt search/entry JSON record into a typeahead candidate.
+
+    Returns the field names the frontend dropdown consumes: accession, id,
+    protein_name, gene_names, organism, is_human, length.
+    """
+    desc = item.get("proteinDescription", {})
+    protein_name = (desc.get("recommendedName", {}).get("fullName", {}).get("value"))
+    if not protein_name:
+        submitted = desc.get("submissionNames") or desc.get("submittedNames") or []
+        if submitted:
+            protein_name = submitted[0].get("fullName", {}).get("value")
+    if not protein_name:
+        protein_name = item.get("uniProtkbId", item.get("primaryAccession", ""))
+
+    gene_names: list[str] = []
+    for gene in item.get("genes", []):
+        gname = (gene.get("geneName") or {}).get("value")
+        if gname and gname not in gene_names:
+            gene_names.append(gname)
+        for syn in gene.get("synonyms", []) or []:
+            sval = syn.get("value")
+            if sval and sval not in gene_names:
+                gene_names.append(sval)
+
+    organism = item.get("organism", {})
+    return {
+        "accession": item.get("primaryAccession", ""),
+        "id": item.get("uniProtkbId", ""),
+        "protein_name": protein_name,
+        "gene_names": gene_names,
+        "organism": organism.get("scientificName", ""),
+        "is_human": organism.get("taxonId") == 9606,
+        "length": item.get("sequence", {}).get("length", 0),
+    }
+
+
+def search_proteins(query: str, limit: int = 12) -> list[dict]:
+    """Resolve free-text (gene/protein name or accession) to UniProt candidates.
+
+    Human entries are surfaced first; an exact accession short-circuits to that
+    single entry. Used by the web UI's typeahead dropdown.
+    """
+    query = (query or "").strip()
+    if not query:
+        return []
+
+    if ACCESSION_RE.match(query):
+        try:
+            entry = get_json(UNIPROT_ENTRY.format(acc=query.upper()), allow_404=True)
+            if entry:
+                return [_candidate_from_search_hit(entry)]
+        except Exception:
+            pass  # fall through to text search
+
+    data = get_json(
+        UNIPROT_SEARCH,
+        params={
+            "query": f'(gene:{query} OR protein_name:"{query}") AND reviewed:true',
+            "fields": "accession,id,protein_name,gene_names,organism_name,organism_id,length",
+            "format": "json",
+            "size": str(limit * 3),
+        },
+    )
+    results = data.get("results", []) if data else []
+    candidates = [_candidate_from_search_hit(item) for item in results]
+
+    q_upper = query.upper()
+    candidates.sort(key=lambda c: (not c["is_human"],
+                                   not c["id"].upper().startswith(q_upper + "_")))
+    return candidates[:limit]

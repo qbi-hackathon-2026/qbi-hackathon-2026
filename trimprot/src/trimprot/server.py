@@ -18,6 +18,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastmcp import Client
 
 from .mcp_server import mcp
+from .uniprot import search_proteins
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUTS = ROOT / "outputs"
@@ -33,6 +34,15 @@ app = FastAPI(title="TrimProt")
 @app.get("/", response_class=HTMLResponse)
 def index() -> HTMLResponse:
     return HTMLResponse(INDEX.read_text())
+
+
+@app.get("/api/search")
+def search(q: str):
+    """Typeahead: free-text gene/protein name (or accession) -> UniProt candidates."""
+    try:
+        return search_proteins(q)
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=502)
 
 
 @app.get("/api/run")

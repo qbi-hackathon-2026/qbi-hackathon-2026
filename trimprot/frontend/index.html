@@ -1,231 +1,517 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>TrimProt</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TrimProt — Target-Prep Assistant</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.0/3Dmol-min.js"></script>
+<script>
+  // Resolve theme before first paint to avoid a flash of the wrong palette.
+  (function () {
+    var saved = localStorage.getItem('trimprot-theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.dataset.theme = theme;
+  })();
+</script>
 <style>
-  :root { --bg:#0f1115; --panel:#171a21; --line:#272b33; --green:#33cc33; --muted:#9aa4b2; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:#e8eaed;
-         font-family:-apple-system,Segoe UI,Roboto,sans-serif; }
-  header { padding:12px 18px; background:var(--panel); border-bottom:1px solid var(--line);
-           display:flex; gap:10px; align-items:center; }
-  header h1 { font-size:16px; margin:0 14px 0 0; font-weight:600; }
-  header h1 span { color:var(--green); }
-  input { flex:0 0 320px; padding:8px 10px; border-radius:6px; border:1px solid var(--line);
-          background:#0c0e12; color:#e8eaed; font-size:14px; }
-  button { padding:8px 16px; border-radius:6px; border:0; background:var(--green); color:#06210b;
-           font-weight:600; cursor:pointer; font-size:14px; }
-  button:disabled { opacity:.5; cursor:default; }
-  #status { color:var(--muted); font-size:13px; }
-  .wrap { display:grid; grid-template-columns:1fr 1fr 380px; gap:1px; background:var(--line);
-          height:calc(100vh - 58px); }
-  .cell { background:var(--bg); position:relative; }
-  .cap { position:absolute; z-index:5; top:8px; left:10px; font-size:12px; color:var(--muted);
-         background:rgba(0,0,0,.55); padding:3px 8px; border-radius:4px; }
-  .cap b.g { color:var(--green); }
-  .cap button.mini { margin-left:8px; padding:2px 8px; font-size:11px; background:#222630;
-                     color:#e8eaed; border:1px solid var(--line); border-radius:4px;
-                     cursor:pointer; font-weight:500; }
-  .clickable { cursor:pointer; }
-  .viewer { position:absolute; inset:0; }
-  #summary { background:var(--panel); padding:16px 18px; overflow:auto; }
-  #summary h2 { margin:0 0 2px; font-size:18px; }
-  #summary .sub { color:var(--muted); font-size:13px; margin-bottom:14px; }
-  #summary .fn { font-size:13px; line-height:1.45; color:#cdd3db; margin-bottom:16px; }
-  .row { display:flex; justify-content:space-between; gap:10px; padding:6px 0;
-         border-bottom:1px solid var(--line); font-size:13px; }
-  .row .k { color:var(--muted); } .row .v { text-align:right; }
-  .chip { display:inline-block; background:#0c0e12; border:1px solid var(--line);
-          border-radius:4px; padding:1px 6px; margin:2px 0 0 4px; font-size:12px; }
-  .hot { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--green);
-         word-break:break-word; line-height:1.6; margin-top:6px; }
-  .placeholder { color:var(--muted); font-size:13px; padding:20px; }
+  /* ──────────────────────────────────────────────────────────────────────
+     VIEWER BACKGROUND
+     The 3D molecular canvas is theme-INDEPENDENT: it stays the same color in
+     light and dark mode. To recolor it, change BOTH:
+       1. --viewer-bg below, and
+       2. the VIEWER_BG constant in the <script> block.
+     (3Dmol paints the canvas via JS, so the CSS var alone is not enough.)
+     ────────────────────────────────────────────────────────────────────── */
+  :root { --viewer-bg: #f4f6fb; }
+
+  /* CONTENT WIDTH — one knob for overall page width (header, status, main). */
+  :root { --content-max: 90%; }
+
+  :root,
+  html[data-theme="light"] {
+    --bg: #f6f8fb; --panel: #ffffff; --border: #e2e6ee; --text: #0f1729;
+    --muted: #5b6472; --accent: #2563eb; --avoid: #e23b3b; --hotspot: #0f9d6b;
+    --patch: #d97706; --hover: #eef2f8; --chip: #f1f4fa; --shadow: 0 10px 30px rgba(15,23,41,0.10);
+  }
+  html[data-theme="dark"] {
+    --bg: #0f1116; --panel: #171a21; --border: #2a2e38; --text: #e6e8ee;
+    --muted: #9aa1ad; --accent: #4ea1ff; --avoid: #ff5c5c; --hotspot: #36d399;
+    --patch: #ff9d3c; --hover: #1f232c; --chip: #1f232c; --shadow: 0 10px 30px rgba(0,0,0,0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, Segoe UI, Roboto, sans-serif; }
+
+  /* ── Header / landing ─────────────────────────────────────────────────── */
+  header { max-width: var(--content-max); margin: 0 auto; padding: 40px 24px 8px; }
+  .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+  h1.brand { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+  h1.brand .trim { color: var(--accent); }
+  h1.brand .prot { color: var(--text); }
+  .tagline { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
+  #theme-toggle { flex-shrink: 0; background: var(--panel); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; width: 38px; height: 38px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: border-color .15s, color .15s; }
+  #theme-toggle:hover { border-color: var(--accent); color: var(--text); }
+  #theme-toggle svg { width: 18px; height: 18px; }
+
+  .search-section { max-width: 720px; margin: 26px 0 0; }
+
+  /* ── Search box + typeahead ───────────────────────────────────────────── */
+  #search-wrap { position: relative; width: 100%; }
+  .search-field { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; box-shadow: var(--shadow); transition: border-color .15s, box-shadow .15s; }
+  .search-field:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.16); }
+  html[data-theme="dark"] .search-field:focus-within { box-shadow: 0 0 0 3px rgba(78,161,255,0.20); }
+  .search-field .icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--muted); }
+  #search-input { flex: 1; min-width: 0; background: transparent; border: none; color: var(--text); font-size: 15px; outline: none; }
+  #search-input::placeholder { color: var(--muted); }
+  .search-field .spinner { width: 16px; height: 16px; flex-shrink: 0; color: var(--muted); animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #clear-btn { flex-shrink: 0; background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px; border-radius: 4px; display: inline-flex; }
+  #clear-btn:hover { background: var(--hover); color: var(--text); }
+
+  #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; margin-top: 8px; max-height: 380px; overflow-y: auto; z-index: 20; display: none; box-shadow: var(--shadow); padding: 4px 0; }
+  #suggestions .state { padding: 11px 14px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  #suggestions .state .spinner { width: 16px; height: 16px; flex-shrink: 0; color: var(--muted); animation: spin .7s linear infinite; }
+  #suggestions .state.error { color: var(--avoid); }
+  #suggestions .item { padding: 10px 14px; cursor: pointer; font-size: 14px; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  #suggestions .item.active { background: var(--hover); }
+  #suggestions .item .left { min-width: 0; flex: 1; }
+  #suggestions .item .name { color: var(--text); font-weight: 500; }
+  #suggestions .item .genes { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  #suggestions .item .right { flex-shrink: 0; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  #suggestions .item .org { color: var(--muted); font-style: italic; }
+  #suggestions .item .acc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--chip); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; color: var(--text); }
+  #suggestions .item .acc.human { color: var(--hotspot); border-color: var(--hotspot); }
+  #suggestions .item .len { color: var(--muted); }
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  #status { max-width: var(--content-max); margin: 0 auto; padding: 10px 24px; color: var(--muted); font-size: 13px; display: none; }
+  #status.show { display: block; }
+
+  /* ── Results region (hidden until a protein is chosen) ────────────────── */
+  #results { display: none; }
+  main { max-width: var(--content-max); margin: 0 auto; display: flex; gap: 16px; padding: 8px 24px 32px; }
+  .col { flex: 1; min-width: 0; }
+
+  /* ── Protein title block ──────────────────────────────────────────────── */
+  .protein-head { margin-bottom: 14px; }
+  .protein-head .title-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; }
+  .protein-head h2.pname { font-size: 24px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  .protein-head .pgenes { color: var(--muted); font-size: 14px; }
+  .protein-head .pacc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--chip); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; font-size: 13px; }
+  .protein-head .pfacts { color: var(--muted); font-size: 13px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+  .protein-head .pfacts .org { font-style: italic; }
+  .protein-head .plinks { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .protein-head .plinks a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; font-size: 12px; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 999px; padding: 4px 11px; transition: border-color .15s, color .15s; }
+  .protein-head .plinks a:hover { border-color: var(--accent); color: var(--accent); }
+  .protein-head .plinks a svg { width: 12px; height: 12px; opacity: .7; }
+
+  /* ── Viewers ──────────────────────────────────────────────────────────── */
+  .viewer-row { display: flex; gap: 12px; }
+  .viewer-card { flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .viewer-card .title { padding: 8px 12px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap: 8px; }
+  .viewer-card .title b { color: var(--text); font-weight: 600; }
+  .viewer-card .stage { position: relative; width: 100%; height: 440px; background: var(--viewer-bg); }
+  .mini { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 5px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
+  .mini:hover { border-color: var(--patch); color: var(--patch); }
+  .legend { display:flex; gap:16px; padding: 8px 12px; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+  /* ── Panels / sidebar ─────────────────────────────────────────────────── */
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; }
+  .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
+  .kv { display:grid; grid-template-columns: 150px 1fr; gap: 5px 12px; font-size: 13px; }
+  .kv div.k { color: var(--muted); }
+  .kv div.v b { font-weight: 600; }
+  .pill { display:inline-block; background:var(--chip); border:1px solid var(--border); border-radius:999px; padding:2px 8px; font-size:12px; margin: 2px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .pill.hotspot { border-color: var(--hotspot); color: var(--hotspot); }
+  .pill.patch { border-color: var(--patch); color: var(--patch); cursor: pointer; }
+  .pill.avoid { border-color: var(--avoid); color: var(--avoid); }
+  .resgrid { max-height: 150px; overflow-y: auto; margin-top: 2px; }
+  #sidebar { width: 360px; flex-shrink: 0; }
+  .dl a { color: var(--accent); text-decoration: none; font-size: 13px; }
+  .dl a:hover { text-decoration: underline; }
+  .placeholder { color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 900px) {
+    main { flex-direction: column; }
+    #sidebar { width: 100%; }
+    .viewer-row { flex-direction: column; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>Trim<span>Prot</span></h1>
-  <input id="q" placeholder="gene or UniProt accession — e.g. EGFR or P00533"
-         value="EGFR" autocomplete="off"/>
-  <button id="run">Prep target</button>
-  <span id="status"></span>
+  <div class="header-top">
+    <div>
+      <h1 class="brand"><span class="trim">Trim</span><span class="prot">Prot</span></h1>
+      <p class="tagline">Target-prep assistant for de novo binder design</p>
+    </div>
+    <button id="theme-toggle" type="button" aria-label="Toggle color theme"></button>
+  </div>
+  <div class="search-section">
+    <div id="search-wrap">
+      <div class="search-field">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+        <input id="search-input" type="text" role="combobox" aria-expanded="false" aria-controls="suggestions" aria-autocomplete="list"
+               placeholder="Search by protein name, gene symbol, or UniProt accession…" autocomplete="off" spellcheck="false">
+        <svg id="search-spinner" class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
+        <button id="clear-btn" type="button" aria-label="Clear search" style="display:none"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+      </div>
+      <div id="suggestions" role="listbox"></div>
+    </div>
+  </div>
 </header>
 
-<div class="wrap">
-  <div class="cell">
-    <div class="cap">LEFT — chosen RCSB assembly · colored by chain</div>
-    <div id="left" class="viewer"></div>
+<div id="status">Idle.</div>
+
+<div id="results">
+<main>
+  <div class="col">
+    <div class="protein-head" id="protein-head"></div>
+
+    <div class="viewer-row">
+      <div class="viewer-card">
+        <div class="title"><span>Chosen RCSB assembly · <span style="color:var(--muted)">colored by chain</span></span><span id="left-label">—</span></div>
+        <div class="stage" id="stage-left"></div>
+      </div>
+      <div class="viewer-card">
+        <div class="title">
+          <span>Trimmed target · <b style="color:var(--hotspot)">hotspots</b> · <b style="color:var(--patch)">patch</b></span>
+          <button id="focus-patch" class="mini" type="button">focus patch</button>
+        </div>
+        <div class="stage" id="stage-right"></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="background:#8c97a8"></span>Backbone / chains</span>
+      <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
+      <span><span class="dot" style="background:var(--patch)"></span>Epitope patch (→ BindCraft)</span>
+    </div>
+
+    <div class="panel">
+      <h2>Structured summary</h2>
+      <div id="summary-body" class="placeholder">—</div>
+    </div>
   </div>
-  <div class="cell">
-    <div class="cap">RIGHT — trimmed target · <b class="g">hotspots green</b> ·
-      <b style="color:#ff7f0e">patch orange</b>
-      <button id="focusPatch" class="mini">focus patch</button></div>
-    <div id="right" class="viewer"></div>
+
+  <div id="sidebar">
+    <div class="panel">
+      <h2>Downloads</h2>
+      <div id="downloads" class="dl placeholder">—</div>
+    </div>
+    <div class="panel">
+      <h2>Candidate hotspots</h2>
+      <div id="hotspot-list" class="resgrid placeholder">—</div>
+    </div>
+    <div class="panel">
+      <h2>Epitope patch</h2>
+      <div id="patch-list" class="resgrid placeholder">—</div>
+    </div>
+    <div class="panel">
+      <h2>Glycosylation sites <span style="color:var(--muted);font-weight:400;font-size:12px">(UniProt numbering)</span></h2>
+      <div id="glyco-list" class="resgrid placeholder">—</div>
+    </div>
   </div>
-  <div id="summary"><div class="placeholder">Enter a target and click “Prep target”.</div></div>
+</main>
 </div>
 
 <script>
+const API_BASE = (location.protocol === 'http:' || location.protocol === 'https:') ? '' : 'http://127.0.0.1:8000';
+
+// VIEWER BACKGROUND — keep in sync with --viewer-bg in <style>. Theme-independent.
+const VIEWER_BG = '0xf4f6fb';
+
 const $ = id => document.getElementById(id);
-let left, right;
+const statusEl = $('status');
+let leftView, rightView;
+let _patch = [];
 
-function viewer(id) {
-  const el = $(id); el.innerHTML = "";
-  return $3Dmol.createViewer(el, { backgroundColor: "0x0f1115" });
-}
-
-async function getText(url) { const r = await fetch(url); if(!r.ok) throw new Error(url); return r.text(); }
+function setStatus(msg, show) { statusEl.innerHTML = msg; statusEl.classList.toggle('show', show !== false && !!msg); }
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
 const ROMAN = ["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
 const roman = n => ROMAN[n] || ("D" + n);
+const PALETTE = ["0x4e79a7","0xf28e2b","0xe15759","0x76b7b2","0x59a14f","0xedc948",
+                 "0xb07aa1","0xff9da7","0x9c755f","0xbab0ac","0x86bcb6","0xd37295",
+                 "0x8cd17d","0xb6992d","0x499894"];
+
+// ── Theme toggle ──────────────────────────────────────────────────────────
+const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
+const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
+const theme = () => document.documentElement.dataset.theme;
+function applyThemeIcon() { $('theme-toggle').innerHTML = theme() === 'dark' ? SUN : MOON; }
+function toggleTheme() {
+  const next = theme() === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  localStorage.setItem('trimprot-theme', next);
+  applyThemeIcon();
+}
+
+// ── 3Dmol helpers (kept from the engine viewer) ──────────────────────────
+function newViewer(id) { const el = $(id); el.innerHTML = ''; return $3Dmol.createViewer(el, { backgroundColor: VIEWER_BG }); }
+async function getText(url) { const r = await fetch(url); if (!r.ok) throw new Error('fetch failed: ' + url); return r.text(); }
 
 function centroid(model, sel) {
-  const cas = model.selectedAtoms(Object.assign({ atom: "CA" }, sel));
+  const cas = model.selectedAtoms(Object.assign({ atom: 'CA' }, sel));
   if (!cas.length) return null;
-  let x = 0, y = 0, z = 0;
-  cas.forEach(a => { x += a.x; y += a.y; z += a.z; });
+  let x = 0, y = 0, z = 0; cas.forEach(a => { x += a.x; y += a.y; z += a.z; });
   return { x: x / cas.length, y: y / cas.length, z: z / cas.length };
 }
-
-function addChainLabels(viewer, model, chains, palette) {
+function addChainLabels(v, model, chains) {
   chains.forEach((ch, i) => {
-    const c = centroid(model, { chain: ch });
-    if (!c) return;
-    viewer.addLabel("Chain " + ch, {
-      position: c, backgroundColor: palette[i % palette.length], backgroundOpacity: 0.9,
-      fontColor: "white", fontSize: 13, inFront: true });
+    const c = centroid(model, { chain: ch }); if (!c) return;
+    v.addLabel('Chain ' + ch, { position: c, backgroundColor: PALETTE[i % PALETTE.length],
+      backgroundOpacity: 0.9, fontColor: 'white', fontSize: 13, inFront: true });
   });
 }
-
-function addDomainLabels(viewer, model, chain, domains) {
+function addDomainLabels(v, model, chain, domains) {
   domains.forEach((d, i) => {
     const resi = []; for (let r = d.start; r <= d.end; r++) resi.push(r);
-    const cas = model.selectedAtoms({ chain: chain, resi: resi, atom: "CA" });
+    const cas = model.selectedAtoms({ chain: chain, resi: resi, atom: 'CA' });
     if (!cas.length) return;
-    let x = 0, y = 0, z = 0;
-    cas.forEach(a => { x += a.x; y += a.y; z += a.z; });
+    let x = 0, y = 0, z = 0; cas.forEach(a => { x += a.x; y += a.y; z += a.z; });
     const n = cas.length;
-    viewer.addLabel("Domain " + roman(i + 1), {
-      position: { x: x / n, y: y / n, z: z / n },
-      backgroundColor: "0x111418", backgroundOpacity: 0.85,
-      fontColor: "white", fontSize: 12, borderColor: "0x444", borderThickness: 0.5,
-    });
+    v.addLabel('Domain ' + roman(i + 1), { position: { x: x/n, y: y/n, z: z/n },
+      backgroundColor: '0x111418', backgroundOpacity: 0.85, fontColor: 'white',
+      fontSize: 12, borderColor: '0x444', borderThickness: 0.5 });
   });
 }
-
-function enableHover(viewer) {
-  viewer.setHoverable({}, true,
-    (atom, v) => {
-      if (atom.hoverlabel) return;
-      atom.hoverlabel = v.addLabel(
-        (atom.chain ? atom.chain + " · " : "") + (atom.resn || "") + atom.resi,
-        { position: atom, backgroundColor: "0x000000", backgroundOpacity: 0.85,
-          fontColor: "white", fontSize: 13, borderColor: "0x33cc33", borderThickness: 0.4 });
-      v.render();
-    },
-    (atom, v) => {
-      if (atom.hoverlabel) { v.removeLabel(atom.hoverlabel); delete atom.hoverlabel; v.render(); }
-    });
+function enableHover(v) {
+  v.setHoverable({}, true,
+    (atom, vw) => { if (atom.hoverlabel) return;
+      atom.hoverlabel = vw.addLabel((atom.chain ? atom.chain + ' · ' : '') + (atom.resn || '') + atom.resi,
+        { position: atom, backgroundColor: '0x000000', backgroundOpacity: 0.85, fontColor: 'white',
+          fontSize: 13, borderColor: '0x33cc33', borderThickness: 0.4 }); vw.render(); },
+    (atom, vw) => { if (atom.hoverlabel) { vw.removeLabel(atom.hoverlabel); delete atom.hoverlabel; vw.render(); } });
 }
+function focusPatch() { if (rightView && _patch.length) { rightView.zoomTo({ resi: _patch }); rightView.render(); } }
 
-function focusPatch() {
-  if (!window._right || !(window._patch && window._patch.length)) return;
-  window._right.zoomTo({ resi: window._patch });
-  window._right.render();
-}
+// ── Protein header ────────────────────────────────────────────────────────
+const LINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>';
 
-function row(k, v) { return `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`; }
+function renderProteinHead(s, sel) {
+  const acc = s.accession, pdb = (s.structure || {}).chosen_pdb || '';
+  const genes = sel && sel.gene_names && sel.gene_names.length ? esc(sel.gene_names.slice(0, 4).join(', ')) : '';
+  const facts = [];
+  if (sel && sel.organism) facts.push(`<span class="org">${esc(sel.organism)}</span>`);
+  if (sel && sel.length) facts.push(`${sel.length} aa full length`);
+  const ecd = (s.topology || {}).ecd_ranges_uniprot || [];
+  if (ecd.length) facts.push('ECD ' + ecd.map(r => `${r[0]}–${r[1]}`).join(', '));
+  if (pdb) { const st = s.structure || {}; facts.push(`PDB ${esc(pdb.toUpperCase())}${st.resolution ? ` · ${st.resolution} Å` : ''}`); }
 
-function renderSummary(s) {
-  const st = s.structure || {}, c = s.counts || {};
-  const partners = (st.partner_chains||[]).join(", ") || "—";
-  const site = st.apo_fallback ? "apo (no partner)"
-             : (st.antibody_chains||[]).length ? "antibody-bound" : "receptor/ligand-bound";
-  const mp = (s.topology||{});
-  $("summary").innerHTML = `
-    <h2>${s.target} <span style="color:var(--muted);font-weight:400">· ${s.accession}</span></h2>
-    <div class="sub">${s.protein_name||""}</div>
-    ${row("Chosen RCSB PDB", `<b>${(st.chosen_pdb||"?").toUpperCase()}</b>`)}
-    ${row("Method / resolution", st.method_label || st.method || "—")}
-    ${row("Binding site", site)}
-    ${row("Partner chains", partners)}
-    ${row("Topology", `${mp.type||"—"} · membrane-proximal ${mp.membrane_proximal_terminus||"—"}`)}
-    ${(s.viewer && s.viewer.domains && s.viewer.domains.length) ? `
-      <div style="margin-top:10px;color:var(--muted);font-size:12px">Domains (N→C) — labeled on the structure</div>
-      ${s.viewer.domains.map((d, i) => `<div class="row"><span class="k"><b>Domain ${roman(i + 1)}</b> · ${d.name}</span><span class="v">${d.start}–${d.end}</span></div>`).join("")}
-      <div style="height:6px"></div>` : ""}
-    ${row("Hotspots (full)", c.hotspots)}
-    ${row("Epitope patch → BindCraft", c.patch)}
-    <div style="margin-top:14px;color:var(--muted);font-size:12px">Hotspot residues (auth)</div>
-    <div class="hot">${s.hotspot_string_full || "(none)"}</div>
-    <div style="margin-top:10px;color:var(--muted);font-size:12px">Patch (click to focus in viewer)</div>
-    <div class="hot clickable" onclick="focusPatch()" style="color:#ff7f0e">${s.patch_string || "(none)"}</div>
-    <div style="margin-top:14px;font-size:12px">
-      <a style="color:var(--green)" href="/files/${s.target}/summary.json" target="_blank">summary.json</a> ·
-      <a style="color:var(--green)" href="/files/${s.target}/hotspots.csv" target="_blank">hotspots.csv</a> ·
-      <a style="color:var(--green)" href="/files/${s.target}/trimmed.pdb" target="_blank">trimmed.pdb</a>
+  const links = [
+    ['UniProt', `https://www.uniprot.org/uniprotkb/${encodeURIComponent(acc)}/entry`],
+    ['RCSB PDB', `https://www.rcsb.org/structure/${encodeURIComponent(pdb)}`],
+    ['AlphaFold', `https://alphafold.ebi.ac.uk/entry/${encodeURIComponent(acc)}`],
+    ['PDBe', `https://www.ebi.ac.uk/pdbe/entry/pdb/${encodeURIComponent(String(pdb).toLowerCase())}`],
+  ];
+  $('protein-head').innerHTML = `
+    <div class="title-row">
+      <h2 class="pname">${esc(s.protein_name || s.target || acc)}</h2>
+      ${genes ? `<span class="pgenes">${genes}</span>` : ''}
+      <span class="pacc">${esc(acc)}</span>
+    </div>
+    <div class="pfacts">${facts.join('<span aria-hidden="true">·</span>')}</div>
+    <div class="plinks">
+      ${links.map(([label, href]) => `<a href="${href}" target="_blank" rel="noopener">${LINK_ICON}${label}</a>`).join('')}
     </div>`;
 }
 
-async function run() {
-  const q = $("q").value.trim(); if (!q) return;
-  $("run").disabled = true; $("status").textContent = "running pipeline… (~10–30s)";
+// ── Summary + sidebar ─────────────────────────────────────────────────────
+function kv(k, v) { return `<div class="k">${k}</div><div class="v">${v}</div>`; }
+
+function renderSummary(s) {
+  const st = s.structure || {}, c = s.counts || {}, mp = s.topology || {};
+  const partners = (st.partner_chains || []).join(', ') || '—';
+  const site = st.apo_fallback ? 'apo (no partner)'
+             : (st.antibody_chains || []).length ? 'antibody-bound' : 'receptor/ligand-bound';
+  let domainsRows = '';
+  const domains = (s.viewer && s.viewer.domains) || [];
+  if (domains.length) {
+    domainsRows = domains.map((d, i) => kv(`<b>Domain ${roman(i + 1)}</b> · ${esc(d.name || '')}`, `${d.start}–${d.end}`)).join('');
+  }
+  $('summary-body').className = 'kv';
+  $('summary-body').innerHTML =
+    kv('UniProt', `${esc(s.accession)} (${esc(s.target || '')})`) +
+    kv('Chosen PDB', `<b>${esc((st.chosen_pdb || '?').toUpperCase())}</b> · chain ${esc(st.target_chain || '?')}`) +
+    kv('Method / resolution', esc(st.method_label || st.method || '—')) +
+    kv('Binding site', esc(site)) +
+    kv('Partner chains', esc(partners)) +
+    kv('Topology', `${esc(mp.type || '—')} · membrane-proximal ${esc(mp.membrane_proximal_terminus || '—')}`) +
+    domainsRows +
+    kv('Hotspots', `${c.hotspots ?? 0} candidate residues`) +
+    kv('Epitope patch', `${c.patch ?? 0} residues → BindCraft`);
+
+  // Downloads — engine emits these per target under /files/<target>/
+  const t = encodeURIComponent(s.target || s.accession);
+  $('downloads').className = 'dl';
+  $('downloads').innerHTML = `
+    <div><a href="${API_BASE}/files/${t}/trimmed.pdb" download>Download trimmed target (PDB)</a></div>
+    <div style="margin-top:6px"><a href="${API_BASE}/files/${t}/original.cif" download style="color:var(--muted);font-size:12px">original assembly (CIF)</a></div>
+    <div style="margin-top:6px"><a href="${API_BASE}/files/${t}/summary.json" target="_blank" style="color:var(--muted);font-size:12px">summary.json</a> ·
+      <a href="${API_BASE}/files/${t}/hotspots.csv" target="_blank" style="color:var(--muted);font-size:12px">hotspots.csv</a></div>`;
+
+  const hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
+  $('hotspot-list').className = 'resgrid';
+  $('hotspot-list').innerHTML = hot.length ? hot.map(n => `<span class="pill hotspot">${n}</span>`).join('') : 'None identified';
+
+  const patch = (s.viewer && s.viewer.patch_auth_residues) || [];
+  $('patch-list').className = 'resgrid';
+  $('patch-list').innerHTML = patch.length ? patch.map(n => `<span class="pill patch" onclick="focusPatch()" title="focus in viewer">${n}</span>`).join('') : 'None';
+
+  const glyco = s.glycosylation_sites_uniprot || [];
+  $('glyco-list').className = 'resgrid';
+  $('glyco-list').innerHTML = glyco.length ? glyco.map(n => `<span class="pill avoid" title="predicted glycosylation">N${n}</span>`).join('') : 'None predicted';
+}
+
+// ── Run pipeline + render both 3Dmol panels ──────────────────────────────
+let selectedTarget = null;     // accession or name passed to /api/run
+let selectedHit = null;        // the chosen search candidate (for header genes/organism/length)
+
+async function runPipeline() {
+  if (!selectedTarget) return;
+  $('results').style.display = 'block';
+  setStatus(`Running pipeline for <strong>${esc(selectedTarget)}</strong> (UniProt → PDB ranking → trim → annotate)… <span style="opacity:.7">~10–30s</span>`);
   try {
-    const resp = await fetch("/api/run?target=" + encodeURIComponent(q));
+    const resp = await fetch(`${API_BASE}/api/run?target=${encodeURIComponent(selectedTarget)}`);
     const out = await resp.json();
-    if (out.error) throw new Error(out.error);
-    const s = out.summary, hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
+    if (!resp.ok || out.error) throw new Error(out.error || ('HTTP ' + resp.status));
+    const s = out.summary;
 
-    // LEFT — full assembly, each chain a distinct colour
-    const cif = await getText(out.files.original);
-    left = viewer("left");
-    const m = left.addModel(cif, "cif");
-    const palette = ["0x4e79a7","0xf28e2b","0xe15759","0x76b7b2","0x59a14f",
-                     "0xedc948","0xb07aa1","0xff9da7","0x9c755f","0xbab0ac",
-                     "0x86bcb6","0xd37295","0x8cd17d","0xb6992d","0x499894"];
-    const chains = [...new Set(m.selectedAtoms({}).map(a => a.chain))].sort();
-    left.setStyle({}, { cartoon: { color: "0x556070" } });   // base
-    chains.forEach((ch, i) =>
-      left.setStyle({ chain: ch }, { cartoon: { color: palette[i % palette.length] } }));
-    addChainLabels(left, m, chains, palette);
-    enableHover(left);
-    left.zoomTo(); left.render();
+    renderProteinHead(s, selectedHit);
+    $('left-label').textContent = (s.structure && s.structure.chosen_pdb || '').toUpperCase();
 
-    // RIGHT — trimmed target coloured by chain; hotspots green; patch orange
-    const pdb = await getText(out.files.trimmed);
-    right = viewer("right");
-    const mr = right.addModel(pdb, "pdb");
-    const patch = (s.viewer && s.viewer.patch_auth_residues) || [];
-    window._right = right; window._patch = patch;
+    // LEFT — full assembly, each chain a distinct color
+    const cif = await getText(API_BASE + out.files.original);
+    leftView = newViewer('stage-left');
+    const ml = leftView.addModel(cif, 'cif');
+    const lchains = [...new Set(ml.selectedAtoms({}).map(a => a.chain))].sort();
+    leftView.setStyle({}, { cartoon: { color: '0x8c97a8' } });
+    lchains.forEach((ch, i) => leftView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
+    addChainLabels(leftView, ml, lchains);
+    enableHover(leftView);
+    leftView.zoomTo(); leftView.render();
+
+    // RIGHT — trimmed target; hotspots green, patch orange
+    const pdb = await getText(API_BASE + out.files.trimmed);
+    rightView = newViewer('stage-right');
+    const mr = rightView.addModel(pdb, 'pdb');
+    const hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
+    _patch = (s.viewer && s.viewer.patch_auth_residues) || [];
     const rchains = [...new Set(mr.selectedAtoms({}).map(a => a.chain))].sort();
-    rchains.forEach((ch, i) =>
-      right.setStyle({ chain: ch }, { cartoon: { color: palette[i % palette.length] } }));
-    if (rchains.length > 1) addChainLabels(right, mr, rchains, palette);
-    if (hot.length) right.setStyle({ resi: hot },
-        { cartoon: { color: "0x33cc33" }, stick: { color: "0x33cc33", radius: 0.2 } });
-    if (patch.length) right.setStyle({ resi: patch },
-        { cartoon: { color: "0xff7f0e" }, stick: { color: "0xff7f0e", radius: 0.25 },
-          sphere: { color: "0xff7f0e", scale: 0.3 } });
-    addDomainLabels(right, mr, (s.viewer && s.viewer.target_chain),
-                    (s.viewer && s.viewer.domains) || []);
-    enableHover(right);
-    right.zoomTo(); right.render();
+    rchains.forEach((ch, i) => rightView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
+    if (rchains.length > 1) addChainLabels(rightView, mr, rchains);
+    if (hot.length) rightView.setStyle({ resi: hot }, { cartoon: { color: '0x33cc33' }, stick: { color: '0x33cc33', radius: 0.2 } });
+    if (_patch.length) rightView.setStyle({ resi: _patch }, { cartoon: { color: '0xff7f0e' }, stick: { color: '0xff7f0e', radius: 0.25 }, sphere: { color: '0xff7f0e', scale: 0.3 } });
+    addDomainLabels(rightView, mr, (s.viewer && s.viewer.target_chain), (s.viewer && s.viewer.domains) || []);
+    enableHover(rightView);
+    rightView.zoomTo(); rightView.render();
 
     renderSummary(s);
-    $("status").textContent = `done — ${(s.structure||{}).chosen_pdb?.toUpperCase()||""}`;
+    setStatus(`Done. Selected <strong>${esc((s.structure && s.structure.chosen_pdb || '').toUpperCase())}, chain ${esc((s.structure && s.structure.target_chain) || '?')}.</strong>`);
   } catch (e) {
-    $("status").textContent = "error: " + e.message;
-    $("summary").innerHTML = `<div class="placeholder">Failed: ${e.message}</div>`;
-  } finally {
-    $("run").disabled = false;
+    setStatus('Error: ' + esc(e.message));
   }
 }
 
-$("run").addEventListener("click", run);
-$("q").addEventListener("keydown", e => { if (e.key === "Enter") run(); });
-$("focusPatch").addEventListener("click", focusPatch);
+// ── Typeahead search ──────────────────────────────────────────────────────
+let searchDebounce = null, searchAbort = null, searchResults = [], activeIndex = 0, suppressSearch = false;
+
+function setExpanded(b) { $('search-input').setAttribute('aria-expanded', b ? 'true' : 'false'); }
+function hideSuggestions() { $('suggestions').style.display = 'none'; setExpanded(false); }
+function showState(html, cls) { const b = $('suggestions'); b.innerHTML = `<div class="state ${cls || ''}">${html}</div>`; b.style.display = 'block'; setExpanded(true); }
+const SPIN = '<svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>';
+
+function renderResults(query) {
+  const b = $('suggestions');
+  if (!searchResults.length) { showState(`No proteins found matching &ldquo;${esc(query)}&rdquo;.`); return; }
+  b.innerHTML = searchResults.map((c, i) => `
+    <div class="item ${i === activeIndex ? 'active' : ''}" role="option" data-index="${i}" aria-selected="${i === activeIndex}">
+      <div class="left"><span class="name">${esc(c.protein_name)}</span>${c.gene_names && c.gene_names.length ? `<span class="genes">${esc(c.gene_names.slice(0,3).join(', '))}</span>` : ''}</div>
+      <div class="right"><span class="org">${esc(c.organism)}</span><span class="acc ${c.is_human ? 'human' : ''}">${esc(c.accession)}</span>${c.length ? `<span class="len">${c.length} aa</span>` : ''}</div>
+    </div>`).join('');
+  b.style.display = 'block'; setExpanded(true);
+  b.querySelectorAll('.item').forEach(el => {
+    const i = Number(el.dataset.index);
+    el.addEventListener('mouseenter', () => { activeIndex = i; updateActive(); });
+    el.addEventListener('mousedown', e => { e.preventDefault(); selectResult(searchResults[i]); });
+  });
+}
+function updateActive() {
+  $('suggestions').querySelectorAll('.item').forEach(el => {
+    const on = Number(el.dataset.index) === activeIndex;
+    el.classList.toggle('active', on); el.setAttribute('aria-selected', on ? 'true' : 'false');
+    if (on) el.scrollIntoView({ block: 'nearest' });
+  });
+}
+function selectResult(c) {
+  if (!c) return;
+  suppressSearch = true;
+  selectedHit = c;
+  selectedTarget = c.accession;
+  $('search-input').value = `${c.protein_name} (${c.accession})`;
+  hideSuggestions(); searchResults = []; $('search-input').blur();
+  runPipeline();
+}
+async function doSearch(q) {
+  const query = (q || '').trim();
+  if (query.length < 2) { searchResults = []; hideSuggestions(); return; }
+  if (searchAbort) searchAbort.abort();
+  searchAbort = new AbortController();
+  $('search-spinner').style.display = 'block';
+  showState(`${SPIN}Searching UniProt…`);
+  try {
+    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(query)}`, { signal: searchAbort.signal });
+    if (!res.ok) throw new Error('bad status');
+    searchResults = await res.json();
+    if (!Array.isArray(searchResults)) searchResults = [];
+    activeIndex = 0; renderResults(query);
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    searchResults = []; showState("Couldn't reach UniProt. Try again in a moment.", 'error');
+  } finally { $('search-spinner').style.display = 'none'; }
+}
+function onSearchKeyDown(e) {
+  const open = $('suggestions').style.display === 'block';
+  if (e.key === 'Escape') { hideSuggestions(); return; }
+  if (e.key === 'Enter') {
+    if (open && searchResults[activeIndex]) { e.preventDefault(); selectResult(searchResults[activeIndex]); }
+    return;
+  }
+  if (!open) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); if (searchResults.length) { activeIndex = (activeIndex + 1) % searchResults.length; updateActive(); } }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); if (searchResults.length) { activeIndex = (activeIndex - 1 + searchResults.length) % searchResults.length; updateActive(); } }
+}
+function clearSearch() {
+  const i = $('search-input'); i.value = ''; searchResults = []; hideSuggestions();
+  $('clear-btn').style.display = 'none'; i.focus();
+}
+
+window.addEventListener('load', () => {
+  applyThemeIcon();
+  $('theme-toggle').addEventListener('click', toggleTheme);
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    if (localStorage.getItem('trimprot-theme')) return;
+    document.documentElement.dataset.theme = e.matches ? 'dark' : 'light'; applyThemeIcon();
+  });
+
+  const input = $('search-input'), clearBtn = $('clear-btn');
+  input.addEventListener('input', () => {
+    clearBtn.style.display = input.value.length ? 'inline-flex' : 'none';
+    if (suppressSearch) { suppressSearch = false; return; }
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => doSearch(input.value), 250);
+  });
+  input.addEventListener('keydown', onSearchKeyDown);
+  input.addEventListener('focus', () => { if (searchResults.length) $('suggestions').style.display = 'block'; });
+  clearBtn.addEventListener('click', clearSearch);
+  document.addEventListener('mousedown', e => { if (!$('search-wrap').contains(e.target)) hideSuggestions(); });
+  $('focus-patch').addEventListener('click', focusPatch);
+
+  window.addEventListener('resize', () => { if (leftView) leftView.resize(); if (rightView) rightView.resize(); });
+  input.focus();
+});
 </script>
 </body>
 </html>
