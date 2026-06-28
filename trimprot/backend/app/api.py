@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+import discover
 import run_egfr
 import uniprot
 
@@ -56,6 +57,20 @@ def _require_file(filename: str) -> str:
 def search(q: str):
     try:
         return uniprot.search_proteins(q)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/discover")
+def discover_targets(disease: str, cell_type: str | None = None, use_llm: bool = True):
+    """Disease (free text) -> ranked candidate target proteins for the pipeline.
+
+    Each returned target carries a UniProt accession that can be passed straight
+    to /api/run. LLM re-ranking is applied when ANTHROPIC_API_KEY is set on the
+    server; otherwise a deterministic genetic/somatic-weighted ranking is returned.
+    """
+    try:
+        return discover.discover(disease, cell_type=cell_type, use_llm=use_llm)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

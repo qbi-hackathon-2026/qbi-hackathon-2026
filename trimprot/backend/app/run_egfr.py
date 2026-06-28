@@ -29,6 +29,25 @@ OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "output")
 MIN_ECD_COVERAGE = 0.5
 
 
+def _patch_payload(patches: list[dict], auth_to_unp: dict[int, int]) -> list[dict]:
+    """Shape annotate.surface_patch_hotspots() output for the viewer/UI: rank each
+    patch and pair its auth residues with UniProt numbers (mirroring
+    hotspot_residue_pairs) so the frontend can label and select them.
+    """
+    payload = []
+    for rank, p in enumerate(patches, start=1):
+        pairs = sorted((auth_to_unp[a], a) for a in p["residues_auth"] if a in auth_to_unp)
+        payload.append({
+            "rank": rank,
+            "score": p["score"],
+            "size": p["size"],
+            "hydrophobic_fraction": p["hydrophobic_fraction"],
+            "mean_rsasa": p["mean_rsasa"],
+            "residue_pairs": pairs,
+        })
+    return payload
+
+
 def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
     os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -112,16 +131,17 @@ def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
 
         auth_to_unp = {v: k for k, v in u2a.items()}
 
-        # No partner chains in an AF monomer — always use surface-exposure fallback
-        hotspots_auth = annotate.surface_exposed_hotspots(
+        # No partner chains in an AF monomer — detect SASA-based surface patches
+        hotspots_auth, surface_patches = annotate.surface_patch_hotspots(
             trim_result["structure"], chain_id, avoid_auth_nums
         )
         hotspots_auth -= avoid_auth_nums
         hotspot_source = (
-            f"inferred surface-exposed residues (AlphaFold model v{af_result.version}; "
+            f"top SASA surface patches (AlphaFold model v{af_result.version}; "
             f"pLDDT masking applied, mean ECD pLDDT={af_result.ecd_mean_plddt:.1f})"
         )
         hotspots_unp = sorted(auth_to_unp[a] for a in hotspots_auth if a in auth_to_unp)
+        hotspot_patches = _patch_payload(surface_patches, auth_to_unp)
 
         isoform_note = (
             f"Canonical sequence {entry['uniProtkbId']} ({features['length']} aa); "
@@ -160,6 +180,7 @@ def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
             "trimmed_file": f"AF-{accession}_ECD_trimmed.pdb",
             "hotspot_auth_residues": sorted(hotspots_auth),
             "hotspot_residue_pairs": sorted((auth_to_unp[a], a) for a in hotspots_auth if a in auth_to_unp),
+            "hotspot_patches": hotspot_patches,
             "avoid_glycosylation_auth_residues": avoid_glyco_auth,
             "avoid_disulfide_auth_residues": avoid_disulfide_auth,
             "avoid_other_ptm_auth_residues": avoid_ptm_auth,
@@ -233,13 +254,17 @@ def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
             if hydrophobic_auth else
             f"known partner interface (chains {partner_chains}); no hydrophobic contacts found, showing all contacts"
         )
+        # Real interface contacts are the hotspots here; the SASA patch list is
+        # only meaningful for the no-partner surface-inference path below.
+        surface_patches = []
     else:
-        hotspots_auth = annotate.surface_exposed_hotspots(full_structure, auth_chain, avoid_auth_nums)
-        hotspot_source = "inferred surface-exposed residues (no bound partner in chosen structure)"
+        hotspots_auth, surface_patches = annotate.surface_patch_hotspots(full_structure, auth_chain, avoid_auth_nums)
+        hotspot_source = "top SASA surface patches (no bound partner in chosen structure)"
         other_interface_contacts_unp = []
 
     hotspots_auth -= avoid_auth_nums
     hotspots_unp = sorted(auth_to_unp[a] for a in hotspots_auth if a in auth_to_unp)
+    hotspot_patches = _patch_payload(surface_patches, auth_to_unp)
 
     result_summary = summary_mod.build_summary(
         accession=accession,
@@ -280,6 +305,7 @@ def run(accession: str = ACCESSION, verbose: bool = False) -> dict:
         "trimmed_file": f"{pdb_id}_ECD_trimmed.pdb",
         "hotspot_auth_residues": sorted(hotspots_auth),
         "hotspot_residue_pairs": sorted((auth_to_unp[a], a) for a in hotspots_auth if a in auth_to_unp),
+        "hotspot_patches": hotspot_patches,
         "other_interface_contact_auth_residues": other_contacts_auth,
         "avoid_glycosylation_auth_residues": avoid_glyco_auth,
         "avoid_disulfide_auth_residues": avoid_disulfide_auth,

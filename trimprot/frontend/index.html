@@ -61,6 +61,20 @@
   #theme-toggle svg { width: 18px; height: 18px; }
 
   .search-section { max-width: 720px; margin: 26px 0 0; }
+  .search-mode { display: flex; gap: 6px; margin-bottom: 10px; }
+  .search-mode button { background: var(--chip); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 5px 14px; font-size: 13px; cursor: pointer; }
+  .search-mode button.active { color: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .celltype { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 11px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); color: var(--text); font-size: 14px; }
+  .celltype:focus { outline: none; border-color: var(--accent); }
+  #suggestions .cand { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid var(--border); }
+  #suggestions .cand:last-child { border-bottom: none; }
+  #suggestions .cand.active, #suggestions .cand:hover { background: var(--hover); }
+  #suggestions .cand .sym { font-weight: 600; color: var(--text); }
+  #suggestions .cand .acc { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--hotspot); margin-left: 8px; }
+  #suggestions .cand .nm { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  #suggestions .cand .scores { font-size: 11px; color: var(--accent); margin-top: 3px; }
+  #suggestions .cand .rationale { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 2px; }
+  #suggestions .disc-note { padding: 9px 14px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--chip); }
 
   /* ── Search box ───────────────────────────────────────────────────────── */
   #search-wrap { position: relative; width: 100%; }
@@ -135,6 +149,11 @@
   .pill.avoid { border-color: var(--avoid); color: var(--avoid); }
   .pill.hotspot { border-color: var(--hotspot); color: var(--hotspot); cursor: pointer; }
   .pill.hotspot.selected { background: var(--hotspot); color: #fff; }
+  .patch { margin-bottom: 8px; }
+  .patch-head { font-size: 11px; color: var(--muted); cursor: pointer; padding: 2px 4px; border-radius: 6px; display: inline-block; }
+  .patch-head:hover { color: var(--text); background: var(--chip); }
+  .patch-head.selected { color: var(--hotspot); font-weight: 600; }
+  .patch-head .score { color: var(--hotspot); font-weight: 600; }
   a.btn, button.btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; text-decoration: none; cursor: pointer; font-weight: 600; }
   .reasoning { font-size: 13px; line-height: 1.5; color: var(--text); }
   #sidebar { width: 380px; flex-shrink: 0; }
@@ -151,6 +170,10 @@
     <button id="theme-toggle" type="button" aria-label="Toggle color theme"></button>
   </div>
   <div class="search-section">
+    <div class="search-mode" id="search-mode">
+      <button data-smode="protein" class="active" type="button">Protein</button>
+      <button data-smode="disease" type="button">Disease &rarr; targets</button>
+    </div>
     <div id="search-wrap">
       <div class="search-field">
         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
@@ -159,6 +182,7 @@
         <svg id="search-spinner" class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>
         <button id="clear-btn" type="button" aria-label="Clear search" style="display:none"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
       </div>
+      <input id="celltype-input" class="celltype" type="text" placeholder="Cell type (optional, e.g. melanocyte) — then press Enter" autocomplete="off" spellcheck="false" style="display:none">
       <div id="suggestions" role="listbox"></div>
     </div>
   </div>
@@ -301,7 +325,7 @@ function confidenceBuckets(confidenceByAuth, metric) {
   return buckets;
 }
 
-function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, partnerChains, confidenceByAuth, confidenceMetric, mode, selectedAuth }) {
+function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, partnerChains, confidenceByAuth, confidenceMetric, mode, selectedAuths }) {
   const builder = molstar.PluginExtensions.mvs.createBuilder();
   builder.canvas({ background_color: '#171a21' });
   const structure = builder.download({ url: fileUrl }).parse({ format: 'pdb' }).modelStructure();
@@ -340,10 +364,10 @@ function buildMvsState({ fileUrl, authChain, avoidAuthList, hotspotAuthList, par
   }
 
   // Drawn last so it renders on top of avoid/hotspot ball-and-stick layers -
-  // a distinct bright color makes the clicked pill's residue stand out even
-  // when it's also a hotspot or avoid residue.
-  if (selectedAuth != null) {
-    const selComponent = structure.component({ selector: { auth_asym_id: authChain, auth_seq_id: selectedAuth } });
+  // a distinct bright color makes the clicked residue(s) stand out even when
+  // they're also hotspot or avoid residues. A whole patch can be selected at once.
+  if (selectedAuths && selectedAuths.length) {
+    const selComponent = structure.component({ selector: selectedAuths.map(n => ({ auth_asym_id: authChain, auth_seq_id: n })) });
     selComponent.representation({ type: 'ball_and_stick' }).color({ color: '#ffe14d' });
     if (typeof selComponent.focus === 'function') selComponent.focus();
   }
@@ -393,19 +417,27 @@ async function setVizMode(mode) {
 async function loadStructure(viewer, fileUrl, authChain, avoidSet, hotspotSet, partnerChains, confidenceByAuth, confidenceMetric) {
   const entry = {
     viewer, fileUrl, authChain, avoidAuthList: [...avoidSet], hotspotAuthList: [...hotspotSet], partnerChains,
-    confidenceByAuth: confidenceByAuth || {}, confidenceMetric: confidenceMetric || null, selectedAuth: null,
+    confidenceByAuth: confidenceByAuth || {}, confidenceMetric: confidenceMetric || null, selectedAuths: [],
   };
   loadedViewers.push(entry);
   await applyVizMode(entry, vizMode);
 }
 
-// Clicking a hotspot pill highlights that residue (in its auth numbering) across
-// both viewers; clicking the already-selected pill again clears the highlight.
-async function focusHotspot(authNum, pillEl) {
-  const next = loadedViewers[0] && loadedViewers[0].selectedAuth === authNum ? null : authNum;
-  loadedViewers.forEach(entry => { entry.selectedAuth = next; });
+// Clicking a hotspot pill (single residue) or a patch header (whole patch)
+// highlights those residues, by auth numbering, across both viewers. Clicking the
+// same selection again clears it. `selKey` identifies the active selection so a
+// repeat click toggles off and the pill/header styling can reflect it.
+let currentSelKey = null;
+async function focusSelection(authList, selKey) {
+  const clear = currentSelKey === selKey;
+  currentSelKey = clear ? null : selKey;
+  const next = clear ? [] : authList;
+  loadedViewers.forEach(entry => { entry.selectedAuths = next; });
   document.querySelectorAll('#hotspot-list .pill.hotspot').forEach(el => {
-    el.classList.toggle('selected', next != null && Number(el.dataset.auth) === next);
+    el.classList.toggle('selected', next.includes(Number(el.dataset.auth)));
+  });
+  document.querySelectorAll('#hotspot-list .patch-head').forEach(el => {
+    el.classList.toggle('selected', !clear && el.dataset.selkey === selKey);
   });
   await Promise.all(loadedViewers.map(entry => applyVizMode(entry, vizMode)));
 }
@@ -504,11 +536,31 @@ function renderSummary(data) {
   `;
   document.getElementById('show-all-avoid').addEventListener('click', showFullAvoidList);
 
-  const hotspotPairs = viewer.hotspot_residue_pairs || hs.candidate_residues_unp.map(p => [p, p]);
-  document.getElementById('hotspot-list').innerHTML =
-    hotspotPairs.map(([unp, auth]) => `<span class="pill hotspot" data-auth="${auth}" title="auth residue ${auth} — click to highlight">${unp}</span>`).join('') || 'None identified';
-  document.querySelectorAll('#hotspot-list .pill.hotspot').forEach(el => {
-    el.addEventListener('click', () => focusHotspot(Number(el.dataset.auth), el));
+  const pill = ([unp, auth]) => `<span class="pill hotspot" data-auth="${auth}" title="auth residue ${auth} — click to highlight">${unp}</span>`;
+  const hotspotEl = document.getElementById('hotspot-list');
+  const patches = viewer.hotspot_patches || [];
+  currentSelKey = null;
+  if (patches.length) {
+    // Surface-inference path: group pills by ranked SASA patch, each with a
+    // clickable header that highlights the whole patch in the viewer.
+    hotspotEl.innerHTML = patches.map(p => `
+      <div class="patch">
+        <div class="patch-head" data-selkey="patch:${p.rank}" title="click to highlight this whole patch">
+          Patch ${p.rank} · <span class="score">score ${p.score}</span> · ${p.size} res · ${Math.round(p.hydrophobic_fraction * 100)}% hydrophobic · exp ${p.mean_rsasa}
+        </div>
+        <div>${p.residue_pairs.map(pill).join('')}</div>
+      </div>`).join('');
+    hotspotEl.querySelectorAll('.patch-head').forEach(el => {
+      const p = patches.find(pp => `patch:${pp.rank}` === el.dataset.selkey);
+      el.addEventListener('click', () => focusSelection(p.residue_pairs.map(pr => pr[1]), el.dataset.selkey));
+    });
+  } else {
+    // Interface path (or older payloads): flat pill list.
+    const hotspotPairs = viewer.hotspot_residue_pairs || hs.candidate_residues_unp.map(p => [p, p]);
+    hotspotEl.innerHTML = hotspotPairs.map(pill).join('') || 'None identified';
+  }
+  hotspotEl.querySelectorAll('.pill.hotspot').forEach(el => {
+    el.addEventListener('click', () => focusSelection([Number(el.dataset.auth)], `res:${el.dataset.auth}`));
   });
   document.getElementById('other-contacts').textContent = hs.other_interface_contacts_count
     ? `Other interface contacts (not hydrophobic-preferred): ${hs.other_interface_contacts_unp}`
@@ -683,6 +735,76 @@ function clearSearch() {
   input.focus();
 }
 
+// ── Disease → target discovery ───────────────────────────────────────────
+// Free-text disease (+ optional cell type) → ranked candidate target proteins
+// from OpenTargets; clicking one runs the normal pipeline on its accession.
+let searchMode = 'protein';
+
+function setSearchMode(mode) {
+  searchMode = mode;
+  document.querySelectorAll('#search-mode button').forEach(b => b.classList.toggle('active', b.dataset.smode === mode));
+  const input = document.getElementById('search-input');
+  const cell = document.getElementById('celltype-input');
+  const disease = mode === 'disease';
+  input.placeholder = disease
+    ? 'Enter a disease (e.g. melanoma) — then press Enter'
+    : 'Search by protein name, gene symbol, or UniProt accession…';
+  cell.style.display = disease ? 'block' : 'none';
+  if (!disease) cell.value = '';
+  searchResults = [];
+  hideSuggestions();
+  input.value = '';
+  document.getElementById('clear-btn').style.display = 'none';
+  input.focus();
+}
+
+async function runDiscovery() {
+  const disease = document.getElementById('search-input').value.trim();
+  const cellType = document.getElementById('celltype-input').value.trim();
+  if (disease.length < 2) return;
+  showState(`${SPINNER_SVG}Finding targets for ${esc(disease)}…`);
+  try {
+    const url = `${API_BASE}/api/discover?disease=${encodeURIComponent(disease)}`
+      + (cellType ? `&cell_type=${encodeURIComponent(cellType)}` : '');
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(await res.text());
+    renderCandidates(await res.json(), disease);
+  } catch (e) {
+    showState("Couldn't reach the discovery service. Try again in a moment.", 'error');
+  }
+}
+
+function renderCandidates(data, query) {
+  const box = document.getElementById('suggestions');
+  if (!data.disease || !data.targets.length) {
+    showState(`No targets found for &ldquo;${esc(query)}&rdquo;.`);
+    return;
+  }
+  const note = `<div class="disc-note">${esc(data.disease.name)} · ${data.targets.length} candidates · ${esc(data.note)}</div>`;
+  box.innerHTML = note + data.targets.map((t, i) => `
+    <div class="cand" role="option" data-index="${i}">
+      <div><span class="sym">${esc(t.symbol)}</span><span class="acc">${esc(t.accession)}</span></div>
+      <div class="nm">${esc(t.name)}</div>
+      <div class="scores">driver ${t.driver_score} · association ${t.association_score}</div>
+      ${t.llm_rationale ? `<div class="rationale">${esc(t.llm_rationale)}</div>` : ''}
+    </div>`).join('');
+  box.style.display = 'block';
+  setSearchExpanded(true);
+  box.querySelectorAll('.cand').forEach(el => {
+    el.addEventListener('mousedown', (e) => { e.preventDefault(); selectCandidate(data.targets[Number(el.dataset.index)]); });
+  });
+}
+
+function selectCandidate(t) {
+  if (!t) return;
+  suppressSearch = true;
+  selectedAccession = t.accession;
+  document.getElementById('search-input').value = `${t.symbol} (${t.accession})`;
+  hideSuggestions();
+  document.getElementById('search-input').blur();
+  runPipeline();
+}
+
 window.addEventListener('load', async () => {
   const viewerOpts = {
     layoutIsExpanded: false,
@@ -719,15 +841,31 @@ window.addEventListener('load', async () => {
   const input = document.getElementById('search-input');
   const clearBtn = document.getElementById('clear-btn');
 
+  document.querySelectorAll('#search-mode button').forEach(btn => {
+    btn.addEventListener('click', () => setSearchMode(btn.dataset.smode));
+  });
+
   input.addEventListener('input', () => {
     clearBtn.style.display = input.value.length ? 'inline-flex' : 'none';
+    if (searchMode === 'disease') return;  // disease mode is Enter-to-search, no autosuggest
     if (suppressSearch) { suppressSearch = false; return; }
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => doSearch(input.value), 250);
   });
-  input.addEventListener('keydown', onSearchKeyDown);
+  input.addEventListener('keydown', (e) => {
+    if (searchMode === 'disease') {
+      if (e.key === 'Enter') { e.preventDefault(); runDiscovery(); }
+      else if (e.key === 'Escape') hideSuggestions();
+      return;
+    }
+    onSearchKeyDown(e);
+  });
+  // In disease mode, pressing Enter from the cell-type field also runs discovery.
+  document.getElementById('celltype-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); runDiscovery(); }
+  });
   input.addEventListener('focus', () => {
-    if (searchResults.length) document.getElementById('suggestions').style.display = 'block';
+    if (searchMode === 'protein' && searchResults.length) document.getElementById('suggestions').style.display = 'block';
   });
   clearBtn.addEventListener('click', clearSearch);
 
