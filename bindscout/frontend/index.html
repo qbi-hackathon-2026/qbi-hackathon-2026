@@ -142,6 +142,16 @@
   .mini.active { background: var(--patch); border-color: var(--patch); color: #fff; }
   .legend { display:flex; gap:16px; padding: 10px 2px 0; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
   .legend span { display:inline-flex; align-items:center; gap:6px; }
+
+  /* ── Protter topology panel ───────────────────────────────────────────── */
+  #protter-panel { display: none; margin-top: 16px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  #protter-panel .title { padding: 8px 12px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  #protter-panel .title b { color: var(--text); font-weight: 600; }
+  #protter-panel .title a { font-size: 12px; color: var(--muted); text-decoration: none; }
+  #protter-panel .title a:hover { color: var(--accent); }
+  #protter-body { padding: 16px; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+  #protter-body img { max-width: 100%; height: auto; }
+  #protter-body .protter-msg { color: var(--muted); font-size: 13px; }
   .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
 
   /* ── Details below the viewers ────────────────────────────────────────── */
@@ -232,6 +242,15 @@
     <span><span class="dot" style="background:#8c97a8"></span>Backbone / chains</span>
     <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
     <span><span class="dot" style="background:var(--patch)"></span>Epitope patch</span>
+  </div>
+
+  <!-- Protter topology diagram (transmembrane proteins only) -->
+  <div id="protter-panel">
+    <div class="title">
+      <span>Topology diagram · <b>Protter</b></span>
+      <a id="protter-link" href="https://protter.ethz.ch" target="_blank" rel="noopener">Open in Protter ↗</a>
+    </div>
+    <div id="protter-body"><span class="protter-msg">Loading…</span></div>
   </div>
 
   <!-- Details below the viewers -->
@@ -513,6 +532,26 @@ async function loadViewer(stageId, url, ext) {
   }
 }
 
+// ── Protter topology diagram ──────────────────────────────────────────────
+function renderProtter(s) {
+  const panel = $('protter-panel');
+  const loc = (s.localization || {}).kind || '';
+  if (loc !== 'transmembrane_with_ecd' && loc !== 'transmembrane') {
+    panel.style.display = 'none';
+    return;
+  }
+  const acc = s.accession;
+  panel.style.display = 'block';
+  $('protter-body').innerHTML = '<span class="protter-msg">Loading topology diagram…</span>';
+  $('protter-link').href = `https://protter.ethz.ch/#up=${encodeURIComponent(acc)}`;
+
+  const img = new Image();
+  img.alt = 'Protter topology diagram';
+  img.onload = () => { $('protter-body').innerHTML = ''; $('protter-body').appendChild(img); };
+  img.onerror = () => { $('protter-body').innerHTML = '<span class="protter-msg">Topology diagram unavailable for this protein.</span>'; };
+  img.src = `${API_BASE}/api/protter/${encodeURIComponent(acc)}`;
+}
+
 async function runPipeline() {
   if (!selectedTarget) return;
   $('search-hints').classList.add('hide');   // a target is loading; hide the "try…" hint
@@ -533,6 +572,7 @@ async function runPipeline() {
     renderWarnings(s);
     $('left-label').textContent = (s.structure && s.structure.chosen_pdb || '').toUpperCase();
     renderSummary(s);
+    renderProtter(s);
     setStatus(`Done. Selected <strong>${esc((s.structure && s.structure.chosen_pdb || '').toUpperCase())}, chain ${esc((s.structure && s.structure.target_chain) || '?')}.</strong>`);
 
     // LEFT — full assembly, each chain a distinct color (guarded)

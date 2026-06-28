@@ -13,12 +13,15 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import requests as _requests
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from fastmcp import Client
 
 from .mcp_server import mcp
 from .uniprot import search_proteins
+
+PROTTER_URL = "https://protter.ethz.ch/create"
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUTS = ROOT / "outputs"
@@ -84,6 +87,26 @@ async def run(target: str):
             "trimmed": f"/files/{name}/trimmed.pdb",
         },
     }
+
+
+@app.get("/api/protter/{accession}")
+def protter(accession: str):
+    """Proxy the Protter topology SVG for a UniProt accession."""
+    if not _ACCESSION.match(accession.upper()):
+        return JSONResponse({"error": "invalid accession"}, status_code=400)
+    try:
+        resp = _requests.get(
+            PROTTER_URL,
+            params={"up": accession.upper(), "format": "svg"},
+            timeout=15,
+        )
+        resp.raise_for_status()
+        return Response(content=resp.content, media_type="image/svg+xml")
+    except _requests.HTTPError as exc:
+        return JSONResponse({"error": f"Protter returned {exc.response.status_code}"},
+                            status_code=502)
+    except Exception as exc:
+        return JSONResponse({"error": str(exc)}, status_code=502)
 
 
 @app.get("/files/{target}/{name}")
