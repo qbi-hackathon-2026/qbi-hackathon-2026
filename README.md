@@ -26,10 +26,6 @@ built-in **chat assistant** lets you ask why a structure was chosen or re-run wi
 new settings in plain English. The output drops straight into de novo
 binder-design pipelines like **BindCraft**, **RFdiffusion**, or **BoltzGen**.
 
-<div align="center">
-  <img src="assets/bonsai-workflow.gif" alt="Bonsai workflow: resolve, rank, trim, and identify hotspots and an epitope patch" width="100%" />
-</div>
-
 ---
 
 ## Installation
