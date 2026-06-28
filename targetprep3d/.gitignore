@@ -1,0 +1,22 @@
+# Isolated uv environment + tooling (sandbox-local, regenerable)
+.venv/
+.uvbin/
+.uv-cache/
+.uv-python/
+
+# Downloaded structures + HTTP/RCSB/CDN caches
+cache/
+
+# Generated artifacts
+outputs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# macOS
+.DS_Store

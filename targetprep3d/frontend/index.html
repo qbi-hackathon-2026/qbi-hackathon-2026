@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>targetprep3d</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.0/3Dmol-min.js"></script>
+<style>
+  :root { --bg:#0f1115; --panel:#171a21; --line:#272b33; --green:#33cc33; --muted:#9aa4b2; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:#e8eaed;
+         font-family:-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { padding:12px 18px; background:var(--panel); border-bottom:1px solid var(--line);
+           display:flex; gap:10px; align-items:center; }
+  header h1 { font-size:16px; margin:0 14px 0 0; font-weight:600; }
+  header h1 span { color:var(--green); }
+  input { flex:0 0 320px; padding:8px 10px; border-radius:6px; border:1px solid var(--line);
+          background:#0c0e12; color:#e8eaed; font-size:14px; }
+  button { padding:8px 16px; border-radius:6px; border:0; background:var(--green); color:#06210b;
+           font-weight:600; cursor:pointer; font-size:14px; }
+  button:disabled { opacity:.5; cursor:default; }
+  #status { color:var(--muted); font-size:13px; }
+  .wrap { display:grid; grid-template-columns:1fr 1fr 380px; gap:1px; background:var(--line);
+          height:calc(100vh - 58px); }
+  .cell { background:var(--bg); position:relative; }
+  .cap { position:absolute; z-index:5; top:8px; left:10px; font-size:12px; color:var(--muted);
+         background:rgba(0,0,0,.55); padding:3px 8px; border-radius:4px; }
+  .cap b.g { color:var(--green); }
+  .cap button.mini { margin-left:8px; padding:2px 8px; font-size:11px; background:#222630;
+                     color:#e8eaed; border:1px solid var(--line); border-radius:4px;
+                     cursor:pointer; font-weight:500; }
+  .clickable { cursor:pointer; }
+  .viewer { position:absolute; inset:0; }
+  #summary { background:var(--panel); padding:16px 18px; overflow:auto; }
+  #summary h2 { margin:0 0 2px; font-size:18px; }
+  #summary .sub { color:var(--muted); font-size:13px; margin-bottom:14px; }
+  #summary .fn { font-size:13px; line-height:1.45; color:#cdd3db; margin-bottom:16px; }
+  .row { display:flex; justify-content:space-between; gap:10px; padding:6px 0;
+         border-bottom:1px solid var(--line); font-size:13px; }
+  .row .k { color:var(--muted); } .row .v { text-align:right; }
+  .chip { display:inline-block; background:#0c0e12; border:1px solid var(--line);
+          border-radius:4px; padding:1px 6px; margin:2px 0 0 4px; font-size:12px; }
+  .hot { font-family:ui-monospace,Menlo,monospace; font-size:12px; color:var(--green);
+         word-break:break-word; line-height:1.6; margin-top:6px; }
+  .placeholder { color:var(--muted); font-size:13px; padding:20px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>target<span>prep3d</span></h1>
+  <input id="q" placeholder="gene or UniProt accession — e.g. EGFR or P00533"
+         value="EGFR" autocomplete="off"/>
+  <button id="run">Prep target</button>
+  <span id="status"></span>
+</header>
+
+<div class="wrap">
+  <div class="cell">
+    <div class="cap">LEFT — chosen RCSB assembly · colored by chain</div>
+    <div id="left" class="viewer"></div>
+  </div>
+  <div class="cell">
+    <div class="cap">RIGHT — trimmed target · <b class="g">hotspots green</b> ·
+      <b style="color:#ff7f0e">patch orange</b>
+      <button id="focusPatch" class="mini">focus patch</button></div>
+    <div id="right" class="viewer"></div>
+  </div>
+  <div id="summary"><div class="placeholder">Enter a target and click “Prep target”.</div></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let left, right;
+
+function viewer(id) {
+  const el = $(id); el.innerHTML = "";
+  return $3Dmol.createViewer(el, { backgroundColor: "0x0f1115" });
+}
+
+async function getText(url) { const r = await fetch(url); if(!r.ok) throw new Error(url); return r.text(); }
+
+const ROMAN = ["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
+const roman = n => ROMAN[n] || ("D" + n);
+
+function centroid(model, sel) {
+  const cas = model.selectedAtoms(Object.assign({ atom: "CA" }, sel));
+  if (!cas.length) return null;
+  let x = 0, y = 0, z = 0;
+  cas.forEach(a => { x += a.x; y += a.y; z += a.z; });
+  return { x: x / cas.length, y: y / cas.length, z: z / cas.length };
+}
+
+function addChainLabels(viewer, model, chains, palette) {
+  chains.forEach((ch, i) => {
+    const c = centroid(model, { chain: ch });
+    if (!c) return;
+    viewer.addLabel("Chain " + ch, {
+      position: c, backgroundColor: palette[i % palette.length], backgroundOpacity: 0.9,
+      fontColor: "white", fontSize: 13, inFront: true });
+  });
+}
+
+function addDomainLabels(viewer, model, chain, domains) {
+  domains.forEach((d, i) => {
+    const resi = []; for (let r = d.start; r <= d.end; r++) resi.push(r);
+    const cas = model.selectedAtoms({ chain: chain, resi: resi, atom: "CA" });
+    if (!cas.length) return;
+    let x = 0, y = 0, z = 0;
+    cas.forEach(a => { x += a.x; y += a.y; z += a.z; });
+    const n = cas.length;
+    viewer.addLabel("Domain " + roman(i + 1), {
+      position: { x: x / n, y: y / n, z: z / n },
+      backgroundColor: "0x111418", backgroundOpacity: 0.85,
+      fontColor: "white", fontSize: 12, borderColor: "0x444", borderThickness: 0.5,
+    });
+  });
+}
+
+function enableHover(viewer) {
+  viewer.setHoverable({}, true,
+    (atom, v) => {
+      if (atom.hoverlabel) return;
+      atom.hoverlabel = v.addLabel(
+        (atom.chain ? atom.chain + " · " : "") + (atom.resn || "") + atom.resi,
+        { position: atom, backgroundColor: "0x000000", backgroundOpacity: 0.85,
+          fontColor: "white", fontSize: 13, borderColor: "0x33cc33", borderThickness: 0.4 });
+      v.render();
+    },
+    (atom, v) => {
+      if (atom.hoverlabel) { v.removeLabel(atom.hoverlabel); delete atom.hoverlabel; v.render(); }
+    });
+}
+
+function focusPatch() {
+  if (!window._right || !(window._patch && window._patch.length)) return;
+  window._right.zoomTo({ resi: window._patch });
+  window._right.render();
+}
+
+function row(k, v) { return `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`; }
+
+function renderSummary(s) {
+  const st = s.structure || {}, c = s.counts || {};
+  const partners = (st.partner_chains||[]).join(", ") || "—";
+  const site = st.apo_fallback ? "apo (no partner)"
+             : (st.antibody_chains||[]).length ? "antibody-bound" : "receptor/ligand-bound";
+  const mp = (s.topology||{});
+  $("summary").innerHTML = `
+    <h2>${s.target} <span style="color:var(--muted);font-weight:400">· ${s.accession}</span></h2>
+    <div class="sub">${s.protein_name||""}</div>
+    ${row("Chosen RCSB PDB", `<b>${(st.chosen_pdb||"?").toUpperCase()}</b>`)}
+    ${row("Method / resolution", st.method_label || st.method || "—")}
+    ${row("Binding site", site)}
+    ${row("Partner chains", partners)}
+    ${row("Topology", `${mp.type||"—"} · membrane-proximal ${mp.membrane_proximal_terminus||"—"}`)}
+    ${(s.viewer && s.viewer.domains && s.viewer.domains.length) ? `
+      <div style="margin-top:10px;color:var(--muted);font-size:12px">Domains (N→C) — labeled on the structure</div>
+      ${s.viewer.domains.map((d, i) => `<div class="row"><span class="k"><b>Domain ${roman(i + 1)}</b> · ${d.name}</span><span class="v">${d.start}–${d.end}</span></div>`).join("")}
+      <div style="height:6px"></div>` : ""}
+    ${row("Hotspots (full)", c.hotspots)}
+    ${row("Epitope patch → BindCraft", c.patch)}
+    <div style="margin-top:14px;color:var(--muted);font-size:12px">Hotspot residues (auth)</div>
+    <div class="hot">${s.hotspot_string_full || "(none)"}</div>
+    <div style="margin-top:10px;color:var(--muted);font-size:12px">Patch (click to focus in viewer)</div>
+    <div class="hot clickable" onclick="focusPatch()" style="color:#ff7f0e">${s.patch_string || "(none)"}</div>
+    <div style="margin-top:14px;font-size:12px">
+      <a style="color:var(--green)" href="/files/${s.target}/summary.json" target="_blank">summary.json</a> ·
+      <a style="color:var(--green)" href="/files/${s.target}/hotspots.csv" target="_blank">hotspots.csv</a> ·
+      <a style="color:var(--green)" href="/files/${s.target}/trimmed.pdb" target="_blank">trimmed.pdb</a>
+    </div>`;
+}
+
+async function run() {
+  const q = $("q").value.trim(); if (!q) return;
+  $("run").disabled = true; $("status").textContent = "running pipeline… (~10–30s)";
+  try {
+    const resp = await fetch("/api/run?target=" + encodeURIComponent(q));
+    const out = await resp.json();
+    if (out.error) throw new Error(out.error);
+    const s = out.summary, hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
+
+    // LEFT — full assembly, each chain a distinct colour
+    const cif = await getText(out.files.original);
+    left = viewer("left");
+    const m = left.addModel(cif, "cif");
+    const palette = ["0x4e79a7","0xf28e2b","0xe15759","0x76b7b2","0x59a14f",
+                     "0xedc948","0xb07aa1","0xff9da7","0x9c755f","0xbab0ac",
+                     "0x86bcb6","0xd37295","0x8cd17d","0xb6992d","0x499894"];
+    const chains = [...new Set(m.selectedAtoms({}).map(a => a.chain))].sort();
+    left.setStyle({}, { cartoon: { color: "0x556070" } });   // base
+    chains.forEach((ch, i) =>
+      left.setStyle({ chain: ch }, { cartoon: { color: palette[i % palette.length] } }));
+    addChainLabels(left, m, chains, palette);
+    enableHover(left);
+    left.zoomTo(); left.render();
+
+    // RIGHT — trimmed target coloured by chain; hotspots green; patch orange
+    const pdb = await getText(out.files.trimmed);
+    right = viewer("right");
+    const mr = right.addModel(pdb, "pdb");
+    const patch = (s.viewer && s.viewer.patch_auth_residues) || [];
+    window._right = right; window._patch = patch;
+    const rchains = [...new Set(mr.selectedAtoms({}).map(a => a.chain))].sort();
+    rchains.forEach((ch, i) =>
+      right.setStyle({ chain: ch }, { cartoon: { color: palette[i % palette.length] } }));
+    if (rchains.length > 1) addChainLabels(right, mr, rchains, palette);
+    if (hot.length) right.setStyle({ resi: hot },
+        { cartoon: { color: "0x33cc33" }, stick: { color: "0x33cc33", radius: 0.2 } });
+    if (patch.length) right.setStyle({ resi: patch },
+        { cartoon: { color: "0xff7f0e" }, stick: { color: "0xff7f0e", radius: 0.25 },
+          sphere: { color: "0xff7f0e", scale: 0.3 } });
+    addDomainLabels(right, mr, (s.viewer && s.viewer.target_chain),
+                    (s.viewer && s.viewer.domains) || []);
+    enableHover(right);
+    right.zoomTo(); right.render();
+
+    renderSummary(s);
+    $("status").textContent = `done — ${(s.structure||{}).chosen_pdb?.toUpperCase()||""}`;
+  } catch (e) {
+    $("status").textContent = "error: " + e.message;
+    $("summary").innerHTML = `<div class="placeholder">Failed: ${e.message}</div>`;
+  } finally {
+    $("run").disabled = false;
+  }
+}
+
+$("run").addEventListener("click", run);
+$("q").addEventListener("keydown", e => { if (e.key === "Enter") run(); });
+$("focusPatch").addEventListener("click", focusPatch);
+</script>
+</body>
+</html>
