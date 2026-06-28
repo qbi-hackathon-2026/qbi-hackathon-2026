@@ -10,12 +10,19 @@
 
 </div>
 
-Give BindScout a protein (a gene name, protein name, or UniProt accession) and it
-prepares a design-ready target: it resolves the UniProt entry, finds and ranks
-structures, trims to the relevant domain, identifies candidate **hotspot**
-residues and an epitope **patch**, builds an **avoid** set, and renders it all in
-an interactive 3D viewer. When no suitable experimental structure exists, it falls
-back to the **AlphaFold Database** automatically.
+To design a new binder (an antibody or mini-protein that sticks to a disease
+target), you first have to prepare that target structurally. Today a structural
+biologist does this by hand, and it can take hours per target.
+
+BindScout automates it. Give BindScout a protein (a gene name, protein name, or
+UniProt accession) and it prepares a design-ready target: it resolves the UniProt
+entry, finds and ranks structures, trims to the relevant domain, identifies
+candidate **hotspot** residues and an epitope **patch**, builds an **avoid** set,
+and renders it all in an interactive 3D viewer. When no suitable experimental
+structure exists, it falls back to the **AlphaFold Database** automatically. A
+built-in **chat assistant** lets you ask why a structure was chosen or re-run with
+new settings in plain English. The output drops straight into de novo
+binder-design pipelines like **BindCraft**, **RFdiffusion**, or **BoltzGen**.
 
 ---
 
