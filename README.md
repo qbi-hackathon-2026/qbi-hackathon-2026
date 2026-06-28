@@ -17,6 +17,8 @@ residues and an epitope **patch**, builds an **avoid** set, and renders it all i
 an interactive 3D viewer. When no suitable experimental structure exists, it falls
 back to the **AlphaFold Database** automatically.
 
+---
+
 ## Installation
 
 With [uv](https://docs.astral.sh/uv/) and `git` installed:
@@ -91,6 +93,8 @@ You're ready — see [Running BindScout](#running-bindscout) below.
 
 </details>
 
+---
+
 ## Running BindScout
 
 Start the web app from the `bindscout` folder:
@@ -132,6 +136,8 @@ To stop the app, click its terminal window and press **Ctrl + C**.
 
 </details>
 
+---
+
 ## Output
 
 For each target, BindScout emits files under `bindscout/outputs/<TARGET>/`,
@@ -144,7 +150,34 @@ downloadable from the page:
 - `hotspots.csv` — ranked hotspots with an `in_patch` flag
 - a BindCraft config for the epitope patch
 
+---
+
+## How BindScout picks a structure
+
+<details>
+<summary><b>How the selection ladder works</b></summary>
+
+<br>
+
+Candidates come from **PDBe `best_structures`** (UniProt-mapped), enriched via the
+**RCSB Data API** (partner chains, method, resolution) and validated against
+**PDBe SIFTS** numbering. Selection is a priority ladder, not a weighted
+score: it keeps usable structures (valid numbering, sane resolution) that cover
+the extracellular domain, prefers them by partner type (**antibody-bound ▸
+ligand-bound ▸ apo**), then by coverage and completeness. Method and resolution
+only break ties. The reasoning behind each pick is written to `summary.json`,
+which can be downloaded.
+
+</details>
+
+---
+
 ## Correctness guarantees
+
+<details>
+<summary><b>The structural details BindScout handles correctly</b></summary>
+
+<br>
 
 1. Everything operates on **author numbering** (`gemmi residue.seqid.num` + insertion code). Never renumbered.
 2. UniProt↔PDB(auth) mapping comes from **PDBe SIFTS** (segment-based, offsets + gaps), cross-checked against `_pdbx_sifts_xref_db`.
@@ -153,22 +186,13 @@ downloadable from the page:
 5. Homo-oligomers download the **biological assembly** by default.
 6. **Membrane-proximal exclusion:** the ECD terminus adjacent to TRANSMEM is excluded by a buffer (default 12 residues).
 7. **AlphaFold fallback:** when no experimental structure exists (or none covers
-   ≥ 50% of the ECD), the AlphaFold model is used, with pLDDT masking — residues
+   ≥ 50% of the ECD), the AlphaFold model is used, with pLDDT masking: residues
    ≤ 50 treated as unobserved and 50–70 as low-confidence, both folded into the
    avoid set.
 
-## Web API
+</details>
 
-The server (`bindscout/src/bindscout/server.py`) backs the page and can be called
-directly:
-
-- `GET /api/search?q=<text>` — typeahead: gene/protein name or accession →
-  ranked UniProt candidates.
-- `GET /api/run?target=<gene|accession>` — runs the pipeline and returns the
-  summary + file URLs.
-- `GET /files/<TARGET>/<name>` — serves emitted artifacts (`trimmed.pdb`,
-  `original.cif`, `summary.json`, `hotspots.csv`).
-- `GET /` — the single-page viewer.
+---
 
 ## Development
 
@@ -180,6 +204,8 @@ uv run pytest                       # full suite (hits UniProt/PDBe/RCSB)
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to contribute.
+
+---
 
 ## License
 
