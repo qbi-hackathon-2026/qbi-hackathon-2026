@@ -14,32 +14,35 @@ focused improvements are all welcome.
 
 ## Development setup
 
-The app is a FastAPI backend (`trimprot/backend`) plus a single static
-frontend file (`trimprot/frontend/index.html`). There is no build step for the
-frontend.
+The app is a deterministic Python pipeline (`trimprot/src/trimprot/`, managed
+with [uv](https://docs.astral.sh/uv/)) served by a FastAPI app, plus a single
+static frontend file (`trimprot/frontend/index.html`). There is no build step
+for the frontend.
 
 ```bash
-cd trimprot/backend/app
-python -m pip install fastapi uvicorn requests gemmi pytest
-python -m uvicorn api:app --host 127.0.0.1 --port 8000
+cd trimprot
+uv sync                                 # creates an isolated env (Python >=3.11)
+uv run python -m trimprot.server        # then open http://127.0.0.1:8000/
 ```
 
-Then open http://127.0.0.1:8000/.
-
-See [`trimprot/README.md`](trimprot/README.md) for the pipeline description, an
-architecture overview, the API reference, and known limitations.
+`uv` downloads the right Python automatically, so you don't need a matching
+system interpreter. See the [root README](README.md) for the interfaces (web app
+/ CLI / MCP) and [`trimprot/README.md`](trimprot/README.md) for the pipeline
+architecture.
 
 ## Running tests
 
 ```bash
-cd trimprot/backend
-python -m pytest                    # all tests
-python -m pytest -m "not network"   # skip tests that hit the live EBI AlphaFold API
+cd trimprot
+uv sync --extra dev
+uv run pytest -m "not network"   # offline unit tests (what CI runs)
+uv run pytest                     # full suite (hits UniProt/PDBe/RCSB)
 ```
 
 CI runs the `not network` subset on every pull request, so make sure that
 passes locally before opening a PR. Tests marked `network` require live
-internet access to external services (UniProt/RCSB/EBI) and may be flaky in CI.
+internet access to external services (UniProt/PDBe/RCSB/EBI) and may be flaky in
+CI.
 
 ## Pull request guidelines
 
@@ -48,8 +51,8 @@ internet access to external services (UniProt/RCSB/EBI) and may be flaky in CI.
 - **Match the surrounding style.** The backend is plain typed Python; the
   frontend is a single vanilla-JS/CSS file with no framework or build step.
 - **Don't commit secrets, credentials, or generated output.** The pipeline
-  writes regenerated files under `trimprot/backend/output/` — these are
-  gitignored and must not be added.
+  writes regenerated files under `trimprot/outputs/` (and caches under
+  `trimprot/cache/`) — these are gitignored and must not be added.
 - **Describe what and why** in the PR body, and link any related Issue.
 
 ## A note on CI and deployment for outside contributors
