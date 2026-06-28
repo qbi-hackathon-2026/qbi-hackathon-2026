@@ -27,8 +27,7 @@ uv run python -m trimprot.server        # then open http://127.0.0.1:8000/
 
 `uv` downloads the right Python automatically, so you don't need a matching
 system interpreter. See the [root README](README.md) for the interfaces (web app
-/ CLI / MCP) and [`trimprot/README.md`](trimprot/README.md) for the pipeline
-architecture.
+/ CLI / MCP).
 
 ## Running tests
 
