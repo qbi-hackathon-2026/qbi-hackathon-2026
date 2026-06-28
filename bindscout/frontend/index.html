@@ -193,7 +193,7 @@
     </div>
     <p id="search-hints">Want a suggestion? Try
       <button type="button" class="hint-link" data-term="insulin">Insulin</button> or
-      <button type="button" class="hint-link" data-term="EGFR">EGFR</button>.</p>
+      <button type="button" class="hint-link" data-term="EGFR">EGFR</button></p>
   </div>
 </header>
 
@@ -272,6 +272,20 @@ const roman = n => ROMAN[n] || ("D" + n);
 const PALETTE = ["0x4e79a7","0xf28e2b","0xe15759","0x76b7b2","0x59a14f","0xedc948",
                  "0xb07aa1","0xff9da7","0x9c755f","0xbab0ac","0x86bcb6","0xd37295",
                  "0x8cd17d","0xb6992d","0x499894"];
+
+// Pre-resolved candidates for the "Want a suggestion?" links, keyed by the
+// lowercased data-term. These are the exact top hits /api/search returns for
+// each term, baked in so a click skips the search round-trip and runs the
+// pipeline immediately. (If a term is missing here, pickSuggestion falls back to
+// a live /api/search.) Shape matches a search candidate consumed by selectResult.
+const SUGGESTIONS = {
+  insulin: { accession: "P01308", protein_name: "Insulin",
+             gene_names: ["INS"], organism: "Homo sapiens",
+             length: 110, is_human: true },
+  egfr:    { accession: "P00533", protein_name: "Epidermal growth factor receptor",
+             gene_names: ["EGFR", "ERBB", "ERBB1", "HER1"], organism: "Homo sapiens",
+             length: 1210, is_human: true },
+};
 
 // ── Theme toggle ──────────────────────────────────────────────────────────
 const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
@@ -567,12 +581,15 @@ function selectResult(c) {
   runPipeline();
 }
 
-// Suggestion hint click: resolve the term via the same /api/search the typeahead
-// uses, then route its top hit through selectResult() — identical to the user
-// typing the term and clicking the first result.
+// Suggestion hint click. The candidate is pre-resolved in SUGGESTIONS, so the
+// common case routes straight through selectResult() with no network wait —
+// identical to the user typing the term and clicking the first result. If a term
+// isn't baked in, fall back to the same /api/search the typeahead uses.
 async function pickSuggestion(term) {
-  const hints = $('search-hints');
-  const links = hints.querySelectorAll('.hint-link');
+  const cached = SUGGESTIONS[(term || '').toLowerCase()];
+  if (cached) { selectResult(cached); return; }
+
+  const links = $('search-hints').querySelectorAll('.hint-link');
   links.forEach(l => l.disabled = true);
   $('search-input').value = term;
   $('search-spinner').style.display = 'block';
