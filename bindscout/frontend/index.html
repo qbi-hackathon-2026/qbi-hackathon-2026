@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TrimProt — Target-Prep Assistant</title>
+<title>BindScout — Target-Prep &amp; Epitope-Discovery Assistant</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.0/3Dmol-min.js"></script>
 <script>
   // Resolve theme before first paint to avoid a flash of the wrong palette.
   (function () {
-    var saved = localStorage.getItem('trimprot-theme');
+    var saved = localStorage.getItem('bindscout-theme');
     var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.dataset.theme = theme;
   })();
@@ -46,8 +46,8 @@
   header { max-width: var(--content-max); margin: 0 auto; padding: 40px 24px 8px; }
   .header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
   h1.brand { font-size: 38px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
-  h1.brand .trim { color: var(--accent); }
-  h1.brand .prot { color: var(--text); }
+  h1.brand .bind { color: var(--accent); }
+  h1.brand .scout { color: var(--text); }
   .tagline { color: var(--muted); font-size: 14px; margin: 6px 0 0; }
   #theme-toggle { flex-shrink: 0; background: var(--panel); border: 1px solid var(--border); color: var(--muted); border-radius: 8px; width: 38px; height: 38px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: border-color .15s, color .15s; }
   #theme-toggle:hover { border-color: var(--accent); color: var(--text); }
@@ -156,8 +156,8 @@
 <header>
   <div class="header-top">
     <div>
-      <h1 class="brand"><span class="trim">Trim</span><span class="prot">Prot</span></h1>
-      <p class="tagline">Target-prep assistant for de novo binder design</p>
+      <h1 class="brand"><span class="bind">Bind</span><span class="scout">Scout</span></h1>
+      <p class="tagline">Target-prep &amp; binding-epitope discovery assistant for de novo binder design</p>
     </div>
     <button id="theme-toggle" type="button" aria-label="Toggle color theme"></button>
   </div>
@@ -254,7 +254,7 @@ function applyThemeIcon() { $('theme-toggle').innerHTML = theme() === 'dark' ? S
 function toggleTheme() {
   const next = theme() === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = next;
-  localStorage.setItem('trimprot-theme', next);
+  localStorage.setItem('bindscout-theme', next);
   applyThemeIcon();
 }
 
@@ -553,7 +553,7 @@ window.addEventListener('load', () => {
   applyThemeIcon();
   $('theme-toggle').addEventListener('click', toggleTheme);
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    if (localStorage.getItem('trimprot-theme')) return;
+    if (localStorage.getItem('bindscout-theme')) return;
     document.documentElement.dataset.theme = e.matches ? 'dark' : 'light'; applyThemeIcon();
   });
 

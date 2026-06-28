@@ -10,9 +10,9 @@ import pytest
 
 # Keep every cache/download inside the project sandbox.
 _ROOT = pathlib.Path(__file__).resolve().parents[1]
-os.environ.setdefault("TRIMPROT_CACHE", str(_ROOT / "cache"))
+os.environ.setdefault("BINDSCOUT_CACHE", str(_ROOT / "cache"))
 
-from trimprot.pipeline import run_pipeline  # noqa: E402
+from bindscout.pipeline import run_pipeline  # noqa: E402
 
 # `pdb`  = curated soft hint (a known good structure that should appear in the list).
 # `pick` = the exact structure the priority ladder must choose (HARD regression).

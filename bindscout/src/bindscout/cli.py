@@ -1,6 +1,6 @@
 """Command-line interface.
 
-    python -m trimprot.cli --protein EGFR [--accession P00533]
+    python -m bindscout.cli --protein EGFR [--accession P00533]
         [--prefer-antibody] [--assembly bioassembly] [--membrane-buffer 12]
 """
 from __future__ import annotations
@@ -43,8 +43,8 @@ def _print_table(rows: list[dict]) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="trimprot",
-                                description="Deterministic protein target prep for binder design.")
+    p = argparse.ArgumentParser(prog="bindscout",
+                                description="Deterministic target prep and binding-epitope discovery for binder design.")
     p.add_argument("--protein", help="gene or protein name (e.g. EGFR)")
     p.add_argument("--accession", help="explicit UniProt accession override (e.g. P00533)")
     p.add_argument("--organism-id", type=int, default=9606)

@@ -3,17 +3,17 @@ from __future__ import annotations
 
 import gemmi
 
-from trimprot.glyco import predict_glycosylation, scan_nglyc_sequons
-from trimprot.hotspots import Hotspot
-from trimprot.outputs import format_hotspot_string
-from trimprot.topology import (
+from bindscout.glyco import predict_glycosylation, scan_nglyc_sequons
+from bindscout.hotspots import Hotspot
+from bindscout.outputs import format_hotspot_string
+from bindscout.topology import (
     Range,
     get_extracellular_ranges,
     get_membrane_proximal_terminus,
     infer_topology_type,
 )
-from trimprot.trim import trim_structure
-from trimprot.uniprot import Feature
+from bindscout.trim import trim_structure
+from bindscout.uniprot import Feature
 
 
 # ---- topology / membrane-proximal ------------------------------------------

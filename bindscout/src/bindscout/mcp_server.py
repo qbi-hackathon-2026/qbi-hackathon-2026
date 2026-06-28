@@ -3,7 +3,7 @@
 Same deterministic code paths as the CLI — an agent can orchestrate the
 individual stages or run the whole pipeline. Run with:
 
-    python -m trimprot.mcp_server
+    python -m bindscout.mcp_server
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from .topology import (
 )
 from .uniprot import resolve_uniprot
 
-mcp = FastMCP("trimprot")
+mcp = FastMCP("bindscout")
 
 DEFAULT_OUTDIR = Path(__file__).resolve().parents[2] / "outputs"
 

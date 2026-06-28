@@ -6,7 +6,7 @@ gate -> partner tier -> coverage -> completeness -> (experimental, resolution).
 """
 from __future__ import annotations
 
-from trimprot.structures import Candidate, select_by_ladder
+from bindscout.structures import Candidate, select_by_ladder
 
 ECD_TOTAL = 100  # coverage tolerance = 4/100 = 0.04
 

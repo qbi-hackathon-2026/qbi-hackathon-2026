@@ -1,4 +1,4 @@
-"""Local web app for trimprot.
+"""Local web app for BindScout.
 
 A thin FastAPI server that serves a single-page UI and runs the pipeline by
 calling the MCP server's `prepare_target` tool through an in-process FastMCP
@@ -6,7 +6,7 @@ client (deterministic — no LLM, no agent). The browser cannot run gemmi /
 network calls, so this server is the only backend: input target -> run pipeline
 -> return the chosen RCSB assembly, the trimmed target, and the summary.
 
-    uv run python -m trimprot.server      # then open http://127.0.0.1:8000
+    uv run python -m bindscout.server      # then open http://127.0.0.1:8000
 """
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ INDEX = ROOT / "frontend" / "index.html"
 _ACCESSION = re.compile(
     r"^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$")
 
-app = FastAPI(title="TrimProt")
+app = FastAPI(title="BindScout")
 
 
 @app.get("/", response_class=HTMLResponse)
