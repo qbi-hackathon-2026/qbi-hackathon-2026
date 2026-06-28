@@ -1,0 +1,24 @@
+<svg viewBox="0 -5 38 53" xmlns="http://www.w3.org/2000/svg">
+  <!-- pot -->
+  <path d="M11 37 L27 37 L25 45 L13 45 Z" fill="#9C7048"/>
+  <rect x="9" y="33" width="20" height="5" rx="2" fill="#B8895A"/>
+  <!-- trunk: gentle S-curve -->
+  <path d="M19 33 C18 27 15 24 17 18 C19 12 18 10 17 5"
+        stroke="#5C3D1E" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- left branch -->
+  <path d="M16.5 21 C13 19 9 17 7 12"
+        stroke="#5C3D1E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- right branch -->
+  <path d="M17.5 15 C21 13 25 12 28 8"
+        stroke="#5C3D1E" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+  <!-- foliage: left -->
+  <ellipse cx="7" cy="10" rx="6.5" ry="5.5" fill="#3D7A52"/>
+  <!-- foliage: center (largest) -->
+  <ellipse cx="17" cy="4" rx="9" ry="6.5" fill="#4E9464"/>
+  <!-- foliage: right -->
+  <ellipse cx="27" cy="7" rx="6.5" ry="5.5" fill="#3D7A52"/>
+  <!-- highlights -->
+  <ellipse cx="16" cy="3" rx="5.5" ry="3.5" fill="#6BB87E" opacity="0.45"/>
+  <ellipse cx="7" cy="9"  rx="3.5" ry="2.5" fill="#6BB87E" opacity="0.35"/>
+  <ellipse cx="27" cy="6" rx="3.5" ry="2.5" fill="#6BB87E" opacity="0.35"/>
+</svg>
