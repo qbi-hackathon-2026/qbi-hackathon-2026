@@ -20,6 +20,7 @@ from fastmcp import Client
 from .mcp_server import mcp
 
 MODEL = "claude-opus-4-8"
+MAX_TOKENS = 1024            # cap output — replies are short, keeps cost down
 MAX_TOOL_ROUNDS = 8          # cap the agent loop so a confused turn can't run away
 MAX_TOOL_RESULT_CHARS = 20000  # keep large summaries from blowing up the context
 
@@ -53,8 +54,12 @@ Honesty rules — this matters:
   Pfam/topology domain), and suggest a dedicated tool if they need a real answer.
 - Distinguish what a tool returned (fact) from your own reasoning (clearly
   flagged). Never present a guess as a computed result.
-- Keep answers short and concrete. Lead with the answer. Cite specific residues,
+- Be terse. Lead with the answer; no preamble, no restating the question, no
+  sign-offs. Prefer 1-4 sentences or a short bullet list. Cite specific residues,
   PDB IDs, and numbers from tool output.
+- For GENERAL-KNOWLEDGE questions (anything not backed by a tool or the loaded
+  summary — e.g. "what does this protein do?"), answer in 1-2 sentences, max ~40
+  words. Don't pad with background the user didn't ask for.
 """
 
 
@@ -112,7 +117,7 @@ async def chat(messages: list[dict], *, outdir: str,
         resp = None
         for _ in range(MAX_TOOL_ROUNDS):
             resp = await client.messages.create(
-                model=MODEL, max_tokens=4096,
+                model=MODEL, max_tokens=MAX_TOKENS,
                 system=system, tools=tools, messages=convo,
             )
             if resp.stop_reason != "tool_use":
