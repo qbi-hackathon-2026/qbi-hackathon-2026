@@ -488,6 +488,7 @@ async function loadViewer(stageId, url, ext) {
 // Render a completed pipeline run (summary + file URLs) into the sidebar and the
 // two 3D viewers. Shared by the search flow (runPipeline) and the chat assistant.
 async function renderRun(s, files, sel) {
+  window.loadedContext = s;   // let the chat assistant know what's on screen
   leftView = rightView = null;
   $('results').style.display = 'block';
   $('warnings').innerHTML = '';
@@ -751,7 +752,7 @@ window.addEventListener('load', () => {
     const m = push('assistant', 'thinking…'); m.classList.add('typing');
     try {
       const base = (location.protocol === 'http:' || location.protocol === 'https:') ? '' : 'http://127.0.0.1:8000';
-      const r = await fetch(base + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: chatHistory }) });
+      const r = await fetch(base + '/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: chatHistory, context: window.loadedContext || null }) });
       const out = await r.json();
       if (!r.ok || out.error) throw new Error(out.error || ('HTTP ' + r.status));
       m.classList.remove('typing');

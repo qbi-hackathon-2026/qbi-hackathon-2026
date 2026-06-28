@@ -96,6 +96,7 @@ class ChatTurn(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatTurn]
+    context: dict | None = None   # summary of the target loaded in the UI, if any
 
 
 @app.post("/api/chat")
@@ -111,7 +112,7 @@ async def chat(req: ChatRequest):
         return JSONResponse({"error": "empty conversation"}, status_code=400)
 
     try:
-        result = await run_chat(msgs, outdir=str(OUTPUTS))
+        result = await run_chat(msgs, outdir=str(OUTPUTS), context=req.context)
     except Exception as exc:
         msg = re.sub(r"^Error calling tool '[^']*':\s*", "", str(exc))
         return JSONResponse({"error": msg}, status_code=400)

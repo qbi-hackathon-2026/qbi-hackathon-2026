@@ -70,8 +70,13 @@ def _anthropic_tools(mcp_tools: list) -> list[dict]:
     return out
 
 
-async def chat(messages: list[dict], *, outdir: str) -> dict[str, Any]:
+async def chat(messages: list[dict], *, outdir: str,
+               context: Optional[dict] = None) -> dict[str, Any]:
     """Run one assistant turn over the conversation, executing tools as needed.
+
+    `context` is the summary of the target currently loaded in the UI (if any),
+    so the assistant knows what the user means by "this protein"/"this PDB"
+    without having to re-resolve it.
 
     Returns {reply, tools_used, prepared} where `prepared` is the prepare_target
     payload if the assistant (re)ran the full pipeline this turn (so the UI can
@@ -85,6 +90,18 @@ async def chat(messages: list[dict], *, outdir: str) -> dict[str, Any]:
 
     client = anthropic.AsyncAnthropic()  # reads ANTHROPIC_API_KEY from the env
 
+    system = SYSTEM
+    if context:
+        ctx = json.dumps(context, default=str)[:8000]
+        system += (
+            "\n\n--- CURRENTLY LOADED TARGET ---\n"
+            "The user has this target open in the UI right now. When they say "
+            '"this protein", "this PDB", "the chosen structure", "the hotspots", '
+            "etc., they mean THIS one — do not ask them which protein. Answer from "
+            "this summary directly (it already includes the structure-selection "
+            "reasoning); only call a tool when you need data it doesn't contain or "
+            "to re-run the pipeline with new parameters:\n" + ctx)
+
     convo: list[dict] = list(messages)
     tools_used: list[dict] = []
     prepared: Optional[dict] = None
@@ -96,7 +113,7 @@ async def chat(messages: list[dict], *, outdir: str) -> dict[str, Any]:
         for _ in range(MAX_TOOL_ROUNDS):
             resp = await client.messages.create(
                 model=MODEL, max_tokens=4096,
-                system=SYSTEM, tools=tools, messages=convo,
+                system=system, tools=tools, messages=convo,
             )
             if resp.stop_reason != "tool_use":
                 break
