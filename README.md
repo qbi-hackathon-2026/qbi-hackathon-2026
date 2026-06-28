@@ -146,6 +146,11 @@ downloadable from the page:
 
 ## How TrimProt picks a structure
 
+<details>
+<summary><b>How the selection ladder works</b></summary>
+
+<br>
+
 Candidates come from **PDBe `best_structures`** (UniProt-mapped), enriched via the
 **RCSB Data API** (partner chains, method, resolution) and validated against
 **PDBe SIFTS** numbering. Selection is a priority ladder, not a weighted
@@ -155,7 +160,14 @@ ligand-bound ▸ apo**), then by coverage and completeness. Method and resolutio
 only break ties. The reasoning behind each pick is written to `summary.json`,
 which can be downloaded.
 
+</details>
+
 ## Correctness guarantees
+
+<details>
+<summary><b>The structural details TrimProt handles correctly</b></summary>
+
+<br>
 
 1. Everything operates on **author numbering** (`gemmi residue.seqid.num` + insertion code). Never renumbered.
 2. UniProt↔PDB(auth) mapping comes from **PDBe SIFTS** (segment-based, offsets + gaps), cross-checked against `_pdbx_sifts_xref_db`.
@@ -164,22 +176,11 @@ which can be downloaded.
 5. Homo-oligomers download the **biological assembly** by default.
 6. **Membrane-proximal exclusion:** the ECD terminus adjacent to TRANSMEM is excluded by a buffer (default 12 residues).
 7. **AlphaFold fallback:** when no experimental structure exists (or none covers
-   ≥ 50% of the ECD), the AlphaFold model is used, with pLDDT masking — residues
+   ≥ 50% of the ECD), the AlphaFold model is used, with pLDDT masking: residues
    ≤ 50 treated as unobserved and 50–70 as low-confidence, both folded into the
    avoid set.
 
-## Web API
-
-The server (`trimprot/src/trimprot/server.py`) backs the page and can be called
-directly:
-
-- `GET /api/search?q=<text>` — typeahead: gene/protein name or accession →
-  ranked UniProt candidates.
-- `GET /api/run?target=<gene|accession>` — runs the pipeline and returns the
-  summary + file URLs.
-- `GET /files/<TARGET>/<name>` — serves emitted artifacts (`trimmed.pdb`,
-  `original.cif`, `summary.json`, `hotspots.csv`).
-- `GET /` — the single-page viewer.
+</details>
 
 ## Development
 
