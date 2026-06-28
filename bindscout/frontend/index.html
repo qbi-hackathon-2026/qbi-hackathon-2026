@@ -159,6 +159,15 @@
   #protter-body.actual-size { align-items: flex-start; justify-content: flex-start; }
   #protter-body.actual-size img { max-width: none; max-height: none; }
   #protter-body .protter-msg { color: var(--muted); font-size: 13px; padding: 24px; text-align: center; }
+
+  /* Shown in place of the panel when the target is not a transmembrane protein. */
+  #protter-notice { display: none; align-items: center; gap: 10px; margin-top: 16px; padding: 10px 14px; background: var(--chip); border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-size: 13px; line-height: 1.4; }
+  #protter-notice .icon { flex-shrink: 0; display: inline-flex; color: var(--muted); }
+  #protter-notice .icon svg { width: 16px; height: 16px; }
+  #protter-notice .text { flex: 1; min-width: 0; }
+  #protter-notice .text b { color: var(--text); font-weight: 600; }
+  #protter-notice .help { flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); color: var(--muted); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; cursor: help; user-select: none; }
+  #protter-notice .help:hover { border-color: var(--accent); color: var(--accent); }
   .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
 
   /* ── Details below the viewers ────────────────────────────────────────── */
@@ -291,6 +300,15 @@
       </span>
     </div>
     <div id="protter-body"><span class="protter-msg">Loading…</span></div>
+  </div>
+
+  <!-- Shown instead of the panel when the target isn't a transmembrane protein. -->
+  <div id="protter-notice" role="note" aria-live="polite">
+    <span class="icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+    </span>
+    <span class="text" id="protter-notice-text">Topology diagram unavailable — Protter renders transmembrane proteins only.</span>
+    <span class="help" id="protter-notice-help" tabindex="0" role="button" aria-label="Why is no topology diagram shown?" title="Protter visualizes transmembrane helices crossing the lipid bilayer and the extracellular/cytoplasmic loops connecting them. Non-membrane proteins have no topology to render.">?</span>
   </div>
 
   <!-- Details below the viewers -->
@@ -588,13 +606,24 @@ function setProtterMode(mode) {
 
 function renderProtter(s) {
   const panel = $('protter-panel');
-  const loc = (s.localization || {}).kind || '';
-  if (loc !== 'transmembrane_with_ecd' && loc !== 'transmembrane') {
+  const notice = $('protter-notice');
+  const loc = s.localization || {};
+  const kind = loc.kind || '';
+  const isTM = (kind === 'transmembrane_with_ecd' || kind === 'transmembrane');
+
+  if (!isTM) {
     panel.style.display = 'none';
+    notice.style.display = 'flex';
+    const label = loc.label || 'non-transmembrane';
+    $('protter-notice-help').title =
+      `Protter visualizes transmembrane helices crossing the lipid bilayer and the extracellular/cytoplasmic loops connecting them. ` +
+      `This target is annotated as ${label}, with no membrane-spanning regions to render.`;
     return;
   }
-  const acc = s.accession;
+
+  notice.style.display = 'none';
   panel.style.display = 'block';
+  const acc = s.accession;
   setProtterMode('fit');   // reset zoom whenever a new target loads
   $('protter-body').innerHTML = '<span class="protter-msg">Loading topology diagram…</span>';
   $('protter-link').href = `https://protter.ethz.ch/#up=${encodeURIComponent(acc)}`;
