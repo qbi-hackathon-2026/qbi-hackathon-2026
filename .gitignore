@@ -22,11 +22,10 @@ gcp-*.json
 service-account*.json
 *-credentials.json
 
-# ── TrimProt pipeline outputs (regenerated per run) ──────────────────────
-trimprot/backend/output/
-trimprot/backend/app/server.log
-trimprot/backend/app/*.cif
-trimprot/backend/app/*.pdb
+# ── TrimProt pipeline outputs / caches (regenerated per run) ─────────────
+trimprot/outputs/
+trimprot/cache/
+trimprot/.venv/
 
 # ── Editor / agent / OS local state ──────────────────────────────────────
 .claude/

@@ -11,7 +11,7 @@
 ## How was this tested?
 
 <!-- Commands you ran and what you observed. For example: -->
-<!-- - `cd trimprot/backend && python -m pytest -m "not network"` -->
+<!-- - `cd trimprot && uv run pytest -m "not network"` -->
 <!-- - Loaded the page, searched <accession>, confirmed the viewer/summary rendered. -->
 
 ## Checklist
