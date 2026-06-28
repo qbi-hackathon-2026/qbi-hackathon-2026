@@ -10,6 +10,7 @@ from typing import Optional
 
 import gemmi
 
+from .alphafold import AlphaFoldModel, PLDDT_LOW, PLDDT_UNOBS, fetch_alphafold
 from .avoid import AvoidSet, build_avoid_set
 from .glyco import predict_glycosylation
 from .hotspots import Hotspot, Removal, filter_hotspots, select_patch
@@ -30,6 +31,10 @@ from .uniprot import UniProtRecord, resolve_uniprot
 # Above this many homo-oligomer copies the assembly is almost certainly crystal
 # packing rather than biology; trim to the protomer instead.
 MAX_OLIGOMER_CHAINS = 12
+
+# Fall back to the AlphaFold model when the best experimental structure covers
+# less than this fraction of the extracellular domain.
+AF_FALLBACK_COVERAGE = 0.50
 
 
 @dataclass
@@ -57,6 +62,7 @@ class PipelineResult:
     assembly: str
     membrane_buffer: int
     warnings: list[str] = field(default_factory=list)
+    alphafold: Optional[AlphaFoldModel] = None   # set when the AF fallback fired
 
 
 def _ecd_to_auth(ecd_ranges: list[Range], mapping: SiftsMapping,
@@ -104,17 +110,36 @@ def run_pipeline(name: Optional[str] = None, *, accession: Optional[str] = None,
     # 3. Glycosylation
     glyco_sites = predict_glycosylation(rec.sequence, rec.of("CARBOHYD"))
 
-    # 4. Structure search (strict priority ladder)
-    choice = search_structures(rec.accession, ecd_ranges,
-                               prefer_antibody=prefer_antibody,
-                               min_ecd_coverage=min_ecd_coverage)
+    # 4. Structure search (strict priority ladder). Fall back to AlphaFold when
+    # there is no experimental structure, or none with adequate ECD coverage.
+    alphafold: Optional[AlphaFoldModel] = None
+    try:
+        choice = search_structures(rec.accession, ecd_ranges,
+                                   prefer_antibody=prefer_antibody,
+                                   min_ecd_coverage=min_ecd_coverage)
+        # Low-coverage AF fallback only applies when there IS an ECD to cover.
+        # Soluble/intracellular targets (no ECD ranges) report 0 coverage but
+        # are correctly served by their experimental structure.
+        need_alphafold = (bool(ecd_ranges)
+                          and choice.chosen.ecd_coverage < AF_FALLBACK_COVERAGE)
+        if need_alphafold:
+            warnings.append(
+                f"best experimental structure covers only "
+                f"{choice.chosen.ecd_coverage*100:.0f}% of the ECD "
+                f"(< {AF_FALLBACK_COVERAGE*100:.0f}%); using AlphaFold model")
+    except ValueError:
+        choice = None
+        need_alphafold = True
 
-    if choice.chosen.predicted:
-        warnings.append("no experimental structure; predicted model used")
-
-    # 5. Load (assembly-aware). Analysis uses the AU; display/trim use the assembly.
-    loaded = load_structure(choice.chosen.pdb_id, assembly=assembly)
-    warnings.extend(loaded.warnings)
+    if need_alphafold:
+        alphafold = fetch_alphafold(rec.accession, ecd_ranges)
+        choice = alphafold.choice
+        loaded = alphafold.loaded
+        warnings.extend(alphafold.warnings)
+    else:
+        # 5. Load (assembly-aware). Analysis uses the AU; display/trim the assembly.
+        loaded = load_structure(choice.chosen.pdb_id, assembly=assembly)
+        warnings.extend(loaded.warnings)
     structure = loaded.analysis
 
     # 6. Classify chains (target vs homo-copies vs partners) from AU coordinates
@@ -139,12 +164,16 @@ def run_pipeline(name: Optional[str] = None, *, accession: Optional[str] = None,
         apo_fallback = True
     partner_chains = interface_chains
 
-    # 7. SIFTS mapping (auth numbering, observed flags, xref cross-check)
-    mapping = get_sifts_mapping(choice.chosen.pdb_id, rec.accession,
-                                structure=structure, target_chain=target_chain)
-    if mapping.xref_mismatches:
-        warnings.append(f"{len(mapping.xref_mismatches)} SIFTS/xref mismatches "
-                        f"(see summary)")
+    # 7. SIFTS mapping (auth numbering, observed flags, xref cross-check).
+    # AlphaFold has no PDBe SIFTS; its mapping is the identity, built upstream.
+    if alphafold is not None:
+        mapping = alphafold.mapping
+    else:
+        mapping = get_sifts_mapping(choice.chosen.pdb_id, rec.accession,
+                                    structure=structure, target_chain=target_chain)
+        if mapping.xref_mismatches:
+            warnings.append(f"{len(mapping.xref_mismatches)} SIFTS/xref mismatches "
+                            f"(see summary)")
 
     # 8. Map ECD + buffer to auth numbering
     ecd_auth = _ecd_to_auth(ecd_ranges, mapping, target_chain)
@@ -163,6 +192,16 @@ def run_pipeline(name: Optional[str] = None, *, accession: Optional[str] = None,
         membrane_buffer=(mp.buffer if mp else None),
         ecd_ranges=ecd_ranges,
     )
+
+    # 9b. AlphaFold pLDDT masking: low-confidence ECD residues join the avoid set
+    # (<=50 as unobserved, 50-70 as low-confidence). Auth numbering == UniProt.
+    if alphafold is not None:
+        for unp in alphafold.unobs_plddt_unp:
+            avoid.add(target_chain, unp, "", unp,
+                      f"alphafold_unobserved_plddt<={PLDDT_UNOBS:.0f}")
+        for unp in alphafold.low_plddt_unp:
+            avoid.add(target_chain, unp, "", unp,
+                      f"alphafold_low_plddt<{PLDDT_LOW:.0f}")
 
     # 10. Interface / epitope (contacts to antibody chains, or apo fallback)
     interface = detect_interface(structure, target_chain, interface_chains,
@@ -235,4 +274,5 @@ def run_pipeline(name: Optional[str] = None, *, accession: Optional[str] = None,
         interface=interface, interface_chains=interface_chains,
         hotspots=hotspots, patch=patch, domains=domains, removals=removals, trim=trim,
         assembly=assembly, membrane_buffer=membrane_buffer, warnings=warnings,
+        alphafold=alphafold,
     )

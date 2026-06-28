@@ -132,6 +132,7 @@ def build_summary(result: PipelineResult) -> dict:
         "trim": {"kept_chains": result.trim.kept_chains,
                  "kept_counts": result.trim.kept_counts},
         "warnings": result.warnings,
+        "alphafold": result.alphafold.summary_fields() if result.alphafold else None,
     }
 
 
