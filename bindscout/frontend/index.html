@@ -55,6 +55,13 @@
 
   .search-section { max-width: 720px; margin: 26px 0 0; }
 
+  /* ── Suggestion hints under the search bar ────────────────────────────── */
+  #search-hints { margin: 12px 2px 0; font-size: 13px; color: var(--muted); }
+  #search-hints.hide { display: none; }
+  .hint-link { background: none; border: none; padding: 0; margin: 0; font: inherit; color: var(--accent); cursor: pointer; }
+  .hint-link:hover { text-decoration: underline; }
+  .hint-link:disabled { color: var(--muted); cursor: default; text-decoration: none; }
+
   /* ── Search box + typeahead ───────────────────────────────────────────── */
   #search-wrap { position: relative; width: 100%; }
   .search-field { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 11px 14px; box-shadow: var(--shadow); transition: border-color .15s, box-shadow .15s; }
@@ -122,6 +129,7 @@
   .viewer-card .stage { position: relative; width: 100%; height: 560px; background: var(--viewer-bg); }
   .mini { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 5px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
   .mini:hover { border-color: var(--patch); color: var(--patch); }
+  .mini.active { background: var(--patch); border-color: var(--patch); color: #fff; }
   .legend { display:flex; gap:16px; padding: 10px 2px 0; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
   .legend span { display:inline-flex; align-items:center; gap:6px; }
   .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
@@ -132,12 +140,21 @@
   .detail-side { width: 360px; flex-shrink: 0; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; }
   .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
-  .kv { display:grid; grid-template-columns: 150px 1fr; gap: 5px 12px; font-size: 13px; }
+  /* Summary box: kv grid on the left, epitope lists filling the right margin. */
+  .summary-grid { display: flex; gap: 24px; align-items: flex-start; }
+  .summary-grid > .kv { flex: 1 1 auto; min-width: 0; }
+  .epitope-col { width: 240px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px; padding-left: 20px; border-left: 1px solid var(--border); }
+  .epitope-col h3 { font-size: 13px; margin: 0 0 6px; color: var(--accent); font-weight: 600; }
+  .epitope-col h3 .count { color: var(--muted); font-weight: 400; }
+  .kv { display:grid; grid-template-columns: 130px 1fr; gap: 7px 12px; font-size: 13px; }
   .kv div.k { color: var(--muted); }
   .kv div.v b { font-weight: 600; }
+  .kv div.v .domain-name { color: var(--muted); }
+  .kv div.v .domain-range { color: var(--muted); font-size: 12px; }
   .pill { display:inline-block; background:var(--chip); border:1px solid var(--border); border-radius:999px; padding:2px 8px; font-size:12px; margin: 2px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
   .pill.hotspot { border-color: var(--hotspot); color: var(--hotspot); }
   .pill.patch { border-color: var(--patch); color: var(--patch); cursor: pointer; }
+  .pill.patch.active { background: var(--patch); color: #fff; }
   .pill.avoid { border-color: var(--avoid); color: var(--avoid); }
   .resgrid { max-height: 150px; overflow-y: auto; margin-top: 2px; }
   .dl a { color: var(--accent); text-decoration: none; font-size: 13px; }
@@ -149,6 +166,8 @@
     .viewer-card .stage { height: 440px; }
     .details { flex-direction: column; }
     .detail-side { width: 100%; }
+    .summary-grid { flex-direction: column; }
+    .epitope-col { width: 100%; padding-left: 0; border-left: none; border-top: 1px solid var(--border); padding-top: 16px; }
   }
 </style>
 </head>
@@ -172,6 +191,9 @@
       </div>
       <div id="suggestions" role="listbox"></div>
     </div>
+    <p id="search-hints">Want a suggestion? Try
+      <button type="button" class="hint-link" data-term="insulin">Insulin</button> or
+      <button type="button" class="hint-link" data-term="EGFR">EGFR</button></p>
   </div>
 </header>
 
@@ -199,27 +221,31 @@
   <div class="legend">
     <span><span class="dot" style="background:#8c97a8"></span>Backbone / chains</span>
     <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
-    <span><span class="dot" style="background:var(--patch)"></span>Epitope patch (→ BindCraft)</span>
+    <span><span class="dot" style="background:var(--patch)"></span>Epitope patch</span>
   </div>
 
   <!-- Details below the viewers -->
   <div class="details">
     <div class="panel detail-main">
       <h2>Structured summary</h2>
-      <div id="summary-body" class="placeholder">—</div>
+      <div class="summary-grid">
+        <div id="summary-body" class="kv placeholder">—</div>
+        <div class="epitope-col">
+          <div>
+            <h3>Candidate hotspots <span class="count" id="hotspot-count"></span></h3>
+            <div id="hotspot-list" class="resgrid placeholder">—</div>
+          </div>
+          <div>
+            <h3>Epitope patch <span class="count" id="patch-count"></span></h3>
+            <div id="patch-list" class="resgrid placeholder">—</div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="detail-side">
       <div class="panel">
         <h2>Downloads</h2>
         <div id="downloads" class="dl placeholder">—</div>
-      </div>
-      <div class="panel">
-        <h2>Candidate hotspots</h2>
-        <div id="hotspot-list" class="resgrid placeholder">—</div>
-      </div>
-      <div class="panel">
-        <h2>Epitope patch</h2>
-        <div id="patch-list" class="resgrid placeholder">—</div>
       </div>
     </div>
   </div>
@@ -236,6 +262,7 @@ const $ = id => document.getElementById(id);
 const statusEl = $('status');
 let leftView, rightView;
 let _patch = [];
+let patchFocus = null;
 
 function setStatus(msg, show) { statusEl.innerHTML = msg; statusEl.classList.toggle('show', show !== false && !!msg); }
 function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
@@ -245,6 +272,20 @@ const roman = n => ROMAN[n] || ("D" + n);
 const PALETTE = ["0x4e79a7","0xf28e2b","0xe15759","0x76b7b2","0x59a14f","0xedc948",
                  "0xb07aa1","0xff9da7","0x9c755f","0xbab0ac","0x86bcb6","0xd37295",
                  "0x8cd17d","0xb6992d","0x499894"];
+
+// Pre-resolved candidates for the "Want a suggestion?" links, keyed by the
+// lowercased data-term. These are the exact top hits /api/search returns for
+// each term, baked in so a click skips the search round-trip and runs the
+// pipeline immediately. (If a term is missing here, pickSuggestion falls back to
+// a live /api/search.) Shape matches a search candidate consumed by selectResult.
+const SUGGESTIONS = {
+  insulin: { accession: "P01308", protein_name: "Insulin",
+             gene_names: ["INS"], organism: "Homo sapiens",
+             length: 110, is_human: true },
+  egfr:    { accession: "P00533", protein_name: "Epidermal growth factor receptor",
+             gene_names: ["EGFR", "ERBB", "ERBB1", "HER1"], organism: "Homo sapiens",
+             length: 1210, is_human: true },
+};
 
 // ── Theme toggle ──────────────────────────────────────────────────────────
 const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
@@ -295,7 +336,27 @@ function enableHover(v) {
           fontSize: 13, borderColor: '0x33cc33', borderThickness: 0.4 }); vw.render(); },
     (atom, vw) => { if (atom.hoverlabel) { vw.removeLabel(atom.hoverlabel); delete atom.hoverlabel; vw.render(); } });
 }
-function focusPatch() { if (rightView && _patch.length) { rightView.zoomTo({ resi: _patch }); rightView.render(); } }
+// patchFocus: null (nothing focused), 'all' (whole-patch button), or a single residue number.
+function focusPatch() {
+  if (!rightView || !_patch.length) return;
+  patchFocus = patchFocus === 'all' ? null : 'all';
+  rightView.zoomTo(patchFocus === 'all' ? { resi: _patch } : undefined);
+  rightView.render();
+  updatePatchFocusUI();
+}
+function focusPatchResidue(resi) {
+  if (!rightView) return;
+  patchFocus = patchFocus === resi ? null : resi;
+  rightView.zoomTo(patchFocus === resi ? { resi: [resi] } : undefined);
+  rightView.render();
+  updatePatchFocusUI();
+}
+function updatePatchFocusUI() {
+  $('focus-patch').classList.toggle('active', patchFocus === 'all');
+  document.querySelectorAll('#patch-list .pill.patch').forEach(el => {
+    el.classList.toggle('active', patchFocus === 'all' || String(patchFocus) === el.dataset.resi);
+  });
+}
 
 // ── Protein header ────────────────────────────────────────────────────────
 const LINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"></path><path d="M10 14 21 3"></path><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>';
@@ -364,7 +425,8 @@ function renderSummary(s) {
   let domainsRows = '';
   const domains = (s.viewer && s.viewer.domains) || [];
   if (domains.length) {
-    domainsRows = domains.map((d, i) => kv(`<b>Domain ${roman(i + 1)}</b> · ${esc(d.name || '')}`, `${d.start}–${d.end}`)).join('');
+    domainsRows = domains.map((d, i) => kv(`Domain ${roman(i + 1)}`,
+      `<span class="domain-name">${esc(d.name || '')}</span> <span class="domain-range">· ${d.start}–${d.end}</span>`)).join('');
   }
   $('summary-body').className = 'kv';
   $('summary-body').innerHTML =
@@ -374,9 +436,9 @@ function renderSummary(s) {
     kv('Binding site', esc(site)) +
     kv('Partner chains', esc(partners)) +
     kv('Topology', `${esc(mp.type || '—')} · membrane-proximal ${esc(mp.membrane_proximal_terminus || '—')}`) +
-    domainsRows +
-    kv('Hotspots', `${c.hotspots ?? 0} candidate residues`) +
-    kv('Epitope patch', `${c.patch ?? 0} residues → BindCraft`);
+    domainsRows;
+  $('hotspot-count').textContent = `(${c.hotspots ?? 0})`;
+  $('patch-count').textContent = `(${c.patch ?? 0})`;
 
   // Downloads — engine emits these per target under /files/<target>/
   const t = encodeURIComponent(s.target || s.accession);
@@ -393,7 +455,8 @@ function renderSummary(s) {
 
   const patch = (s.viewer && s.viewer.patch_auth_residues) || [];
   $('patch-list').className = 'resgrid';
-  $('patch-list').innerHTML = patch.length ? patch.map(n => `<span class="pill patch" onclick="focusPatch()" title="focus in viewer">${n}</span>`).join('') : 'None';
+  $('patch-list').innerHTML = patch.length ? patch.map(n => `<span class="pill patch" data-resi="${n}" onclick="focusPatchResidue(${n})" title="focus this residue in viewer">${n}</span>`).join('') : 'None';
+  updatePatchFocusUI();
 }
 
 // ── Run pipeline + render both 3Dmol panels ──────────────────────────────
@@ -464,9 +527,11 @@ async function renderRun(s, files, sel) {
 
 async function runPipeline() {
   if (!selectedTarget) return;
+  $('search-hints').classList.add('hide');   // a target is loading; hide the "try…" hint
   $('results').style.display = 'block';
   setStatus(`Running pipeline for <strong>${esc(selectedTarget)}</strong> (UniProt → PDB ranking → trim → annotate)… <span style="opacity:.7">~10–30s</span>`);
   leftView = rightView = null;
+  patchFocus = null;
   $('warnings').innerHTML = '';
   try {
     const resp = await fetch(`${API_BASE}/api/run?target=${encodeURIComponent(selectedTarget)}`);
@@ -521,6 +586,34 @@ function selectResult(c) {
   hideSuggestions(); searchResults = []; $('search-input').blur();
   runPipeline();
 }
+
+// Suggestion hint click. The candidate is pre-resolved in SUGGESTIONS, so the
+// common case routes straight through selectResult() with no network wait —
+// identical to the user typing the term and clicking the first result. If a term
+// isn't baked in, fall back to the same /api/search the typeahead uses.
+async function pickSuggestion(term) {
+  const cached = SUGGESTIONS[(term || '').toLowerCase()];
+  if (cached) { selectResult(cached); return; }
+
+  const links = $('search-hints').querySelectorAll('.hint-link');
+  links.forEach(l => l.disabled = true);
+  $('search-input').value = term;
+  $('search-spinner').style.display = 'block';
+  try {
+    const res = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(term)}`);
+    if (!res.ok) throw new Error('bad status');
+    const results = await res.json();
+    const top = Array.isArray(results) ? results[0] : null;
+    if (!top) throw new Error(`no result for ${term}`);
+    selectResult(top);
+  } catch (e) {
+    $('search-input').value = '';
+    showState(`Couldn't load "${esc(term)}". Try again in a moment.`, 'error');
+  } finally {
+    $('search-spinner').style.display = 'none';
+    links.forEach(l => l.disabled = false);
+  }
+}
 async function doSearch(q) {
   const query = (q || '').trim();
   if (query.length < 2) { searchResults = []; hideSuggestions(); return; }
@@ -552,6 +645,7 @@ function onSearchKeyDown(e) {
 }
 function clearSearch() {
   const i = $('search-input'); i.value = ''; searchResults = []; hideSuggestions();
+  $('search-hints').classList.remove('hide');   // back to the bare search bar
   $('clear-btn').style.display = 'none'; i.focus();
 }
 
@@ -574,6 +668,10 @@ window.addEventListener('load', () => {
   input.addEventListener('focus', () => { if (searchResults.length) $('suggestions').style.display = 'block'; });
   clearBtn.addEventListener('click', clearSearch);
   document.addEventListener('mousedown', e => { if (!$('search-wrap').contains(e.target)) hideSuggestions(); });
+  $('search-hints').addEventListener('click', e => {
+    const link = e.target.closest('.hint-link');
+    if (link && !link.disabled) pickSuggestion(link.dataset.term);
+  });
   $('focus-patch').addEventListener('click', focusPatch);
 
   window.addEventListener('resize', () => { if (leftView) leftView.resize(); if (rightView) rightView.resize(); });

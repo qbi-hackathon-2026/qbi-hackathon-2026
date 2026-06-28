@@ -148,7 +148,7 @@ downloadable from the page:
 - `summary.json` — structured result: chosen structure + reasoning, topology, ECD
   ranges, hotspots, epitope patch, avoid set, warnings
 - `hotspots.csv` — ranked hotspots with an `in_patch` flag
-- a BindCraft config for the epitope patch
+- an epitope-patch config
 
 ---
 
