@@ -17,6 +17,8 @@ residues and an epitope **patch**, builds an **avoid** set, and renders it all i
 an interactive 3D viewer. When no suitable experimental structure exists, it falls
 back to the **AlphaFold Database** automatically.
 
+---
+
 ## Installation
 
 With [uv](https://docs.astral.sh/uv/) and `git` installed:
@@ -91,6 +93,8 @@ You're ready — see [Running TrimProt](#running-trimprot) below.
 
 </details>
 
+---
+
 ## Running TrimProt
 
 Start the web app from the `trimprot` folder:
@@ -132,6 +136,8 @@ To stop the app, click its terminal window and press **Ctrl + C**.
 
 </details>
 
+---
+
 ## Output
 
 For each target, TrimProt emits files under `trimprot/outputs/<TARGET>/`,
@@ -143,6 +149,8 @@ downloadable from the page:
   ranges, hotspots, epitope patch, avoid set, warnings
 - `hotspots.csv` — ranked hotspots with an `in_patch` flag
 - a BindCraft config for the epitope patch
+
+---
 
 ## How TrimProt picks a structure
 
@@ -161,6 +169,8 @@ only break ties. The reasoning behind each pick is written to `summary.json`,
 which can be downloaded.
 
 </details>
+
+---
 
 ## Correctness guarantees
 
@@ -182,6 +192,8 @@ which can be downloaded.
 
 </details>
 
+---
+
 ## Development
 
 ```bash
@@ -192,6 +204,8 @@ uv run pytest                       # full suite (hits UniProt/PDBe/RCSB)
 ```
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for how to contribute.
+
+---
 
 ## License
 
