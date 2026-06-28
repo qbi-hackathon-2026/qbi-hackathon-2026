@@ -12,12 +12,12 @@ import pytest
 
 import gemmi
 
-from trimprot.hotspots import _cb_positions
-from trimprot.interface import is_amino_acid, partner_contact_counts
-from trimprot.outputs import emit_outputs, format_hotspot_string
-from trimprot.sifts import get_sifts_mapping
-from trimprot.structio import load_structure
-from trimprot.topology import get_extracellular_ranges, get_transmem_ranges
+from bindscout.hotspots import _cb_positions
+from bindscout.interface import is_amino_acid, partner_contact_counts
+from bindscout.outputs import emit_outputs, format_hotspot_string
+from bindscout.sifts import get_sifts_mapping
+from bindscout.structio import load_structure
+from bindscout.topology import get_extracellular_ranges, get_transmem_ranges
 
 pytestmark = pytest.mark.network
 
@@ -121,9 +121,9 @@ def test_ladder_reproduces_expected_pick(prepared):
 def test_egfr_high_res_low_coverage_fragment_is_gated_out():
     """EGFR 3p0y (1.8Å but only domain III, ECD coverage ~0.33) must be filtered
     at the coverage gate so resolution never rescues a fragment."""
-    from trimprot.structures import (ecd_coverage, search_structures)
-    from trimprot.uniprot import resolve_uniprot
-    from trimprot.topology import get_extracellular_ranges
+    from bindscout.structures import (ecd_coverage, search_structures)
+    from bindscout.uniprot import resolve_uniprot
+    from bindscout.topology import get_extracellular_ranges
     rec = resolve_uniprot(accession="P00533")
     ecd = get_extracellular_ranges(rec.features)
     choice = search_structures("P00533", ecd, prefer_antibody=True)

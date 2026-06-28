@@ -1,17 +1,17 @@
-# TrimProt
+# BindScout
 
-Deterministic protein **target-preparation pipeline** for de novo binder design.
+Deterministic **target-prep and binding-epitope discovery pipeline** for de novo binder design.
 
 Input: a gene/protein name (or UniProt accession).
-Output: a design-ready trimmed target structure, hotspot residues, an avoid set,
-a BindCraft config, and a self-contained 3Dmol.js viewer that highlights the
-hotspot residues on the trimmed target.
+Output: a design-ready trimmed target structure, ranked hotspot/epitope-patch
+residues, an avoid set, a BindCraft config, and a self-contained 3Dmol.js viewer
+that highlights the hotspot residues on the trimmed target.
 
 All structural-biology logic is **pure and deterministic** (no LLM calls). The
 exact same code paths are exposed two ways:
 
-- **CLI:** `python -m trimprot.cli --protein EGFR`
-- **MCP:** `python -m trimprot.mcp_server` (FastMCP server; one tool per pipeline stage)
+- **CLI:** `python -m bindscout.cli --protein EGFR`
+- **MCP:** `python -m bindscout.mcp_server` (FastMCP server; one tool per pipeline stage)
 
 ## Hard correctness guarantees
 
@@ -26,7 +26,7 @@ exact same code paths are exposed two ways:
 
 ```bash
 uv sync --extra dev
-uv run trimprot --protein EGFR
+uv run bindscout --protein EGFR
 uv run pytest -m "not network"     # offline unit tests
 uv run pytest                       # full suite (hits UniProt/PDBe/RCSB)
 ```
@@ -44,7 +44,7 @@ deterministic, no LLM).
 
 ```bash
 uv sync
-uv run python -m trimprot.server    # then open http://127.0.0.1:8000
+uv run python -m bindscout.server    # then open http://127.0.0.1:8000
 ```
 
 `server.py` exposes `/api/run?target=EGFR` (runs `prepare_target` via MCP),

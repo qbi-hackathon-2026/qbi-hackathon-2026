@@ -18,10 +18,10 @@ import requests
 # Sandbox-local cache root. Overridable via env for tests, but defaults inside
 # the project directory per the isolation rules.
 _DEFAULT_CACHE = Path(__file__).resolve().parents[2] / "cache"
-CACHE_DIR = Path(os.environ.get("TRIMPROT_CACHE", _DEFAULT_CACHE))
+CACHE_DIR = Path(os.environ.get("BINDSCOUT_CACHE", _DEFAULT_CACHE))
 
 _SESSION: Optional[requests.Session] = None
-USER_AGENT = "trimprot/0.1 (deterministic target-prep pipeline)"
+USER_AGENT = "bindscout/0.1 (deterministic target-prep + epitope discovery pipeline)"
 TIMEOUT = 60
 
 

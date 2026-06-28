@@ -1,4 +1,4 @@
-<!-- Thanks for contributing to TrimProt! Please fill out the sections below. -->
+<!-- Thanks for contributing to BindScout! Please fill out the sections below. -->
 
 ## What does this PR do?
 
