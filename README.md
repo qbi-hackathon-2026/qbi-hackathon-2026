@@ -115,6 +115,12 @@ Then:
    green, the epitope patch in orange — with chain/domain labels, per-residue
    hover, and a "focus patch" button.
 3. **Download** the prepared artifacts from the page (see [Output](#output)).
+4. **Ask BindScout** (optional) — click the chat panel to ask about the loaded
+   target or re-run the pipeline with different settings in plain English. The
+   assistant needs an Anthropic API key: copy `bindscout/.env.example` to
+   `bindscout/.env` and set `ANTHROPIC_API_KEY` (get one at
+   [console.anthropic.com](https://console.anthropic.com)). The rest of the app
+   works without it.
 
 To stop the app, click its terminal window and press **Ctrl + C**.
 
