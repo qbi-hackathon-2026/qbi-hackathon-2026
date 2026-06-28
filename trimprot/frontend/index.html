@@ -140,6 +140,11 @@
   .pill.avoid { border-color: var(--avoid); color: var(--avoid); }
   .pill.hotspot { border-color: var(--hotspot); color: var(--hotspot); }
   a.btn, button.btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 8px 14px; font-size: 13px; text-decoration: none; cursor: pointer; font-weight: 600; }
+  a.btn-outline { display: inline-block; background: transparent; color: var(--accent); border: 1px solid var(--border); border-radius: 6px; padding: 7px 14px; font-size: 13px; text-decoration: none; font-weight: 500; transition: border-color .15s, color .15s; }
+  a.btn-outline:hover { border-color: var(--accent); }
+  .dl-list { display: flex; flex-direction: column; gap: 8px; }
+  .dl-item { display: flex; flex-direction: column; gap: 3px; }
+  .dl-item .dl-desc { font-size: 12px; color: var(--muted); }
   .reasoning { font-size: 13px; line-height: 1.5; color: var(--text); }
   #sidebar { width: 380px; flex-shrink: 0; }
   .resgrid { max-height: 140px; overflow-y: auto; }
@@ -369,10 +374,58 @@ function renderSummary(data) {
     </div>
   `;
 
-  document.getElementById('downloads').innerHTML = `
-    <a class="btn" href="${API_BASE}/api/files/${viewer.trimmed_file}" download>Download trimmed PDB</a>
-    <div style="margin-top:8px;"><a href="${API_BASE}/api/files/${viewer.original_cif_file}" download style="color:var(--muted); font-size:12px;">original CIF</a></div>
-  `;
+  const isAF = !!data.alphafold_fallback;
+  const isTrimmed = ed && ed.trimming_decision && ed.trimming_decision.trimmed;
+  const pdbId = viewer.pdb_id;
+
+  let dlHTML = '<div class="dl-list">';
+  if (isAF) {
+    dlHTML += `
+      <div class="dl-item">
+        <a class="btn" href="${API_BASE}/api/files/${viewer.original_file}" download>
+          Download AlphaFold full model (PDB)
+        </a>
+        <span class="dl-desc">Complete ${esc(pdbId)} prediction, all residues</span>
+      </div>`;
+    if (isTrimmed) {
+      dlHTML += `
+      <div class="dl-item">
+        <a class="btn" href="${API_BASE}/api/files/${viewer.trimmed_file}" download>
+          Download AlphaFold trimmed ECD (PDB)
+        </a>
+        <span class="dl-desc">Extracellular domain only — residues ${ed.start}–${ed.end}</span>
+      </div>`;
+    }
+    dlHTML += `
+      <div class="dl-item">
+        <a class="btn-outline" href="${API_BASE}/api/files/${viewer.original_cif_file}" download>
+          Download full model (mmCIF)
+        </a>
+        <span class="dl-desc">Complete ${esc(pdbId)} prediction in mmCIF format</span>
+      </div>`;
+  } else {
+    dlHTML += `
+      <div class="dl-item">
+        <a class="btn" href="${API_BASE}/api/files/${viewer.trimmed_file}" download>
+          Download ${esc(pdbId)} trimmed ECD (PDB)
+        </a>
+        <span class="dl-desc">Extracellular domain only — residues ${ed.start}–${ed.end}</span>
+      </div>
+      <div class="dl-item">
+        <a class="btn-outline" href="${API_BASE}/api/files/${viewer.original_file}" download>
+          Download ${esc(pdbId)} full structure (PDB)
+        </a>
+        <span class="dl-desc">Complete crystal structure, all chains</span>
+      </div>
+      <div class="dl-item">
+        <a class="btn-outline" href="${API_BASE}/api/files/${viewer.original_cif_file}" download>
+          Download ${esc(pdbId)} full structure (mmCIF)
+        </a>
+        <span class="dl-desc">Complete crystal structure in mmCIF format</span>
+      </div>`;
+  }
+  dlHTML += '</div>';
+  document.getElementById('downloads').innerHTML = dlHTML;
 
   document.getElementById('avoid-list').innerHTML =
     av.glycosylation_sites.map(s => `<span class="pill avoid" title="glycosylation">N${s.unp_position}</span>`).join('') +
