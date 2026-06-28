@@ -1,0 +1,43 @@
+name: Validate structures (network)
+
+# Read-only structure auditor. Unlike CI (offline unit tests), this runs the
+# pipeline against a few real targets — hitting UniProt/PDBe/RCSB — then audits
+# the chosen structures with validate_structures.py, which exits nonzero if any
+# target's antibody/partner labelling is wrong.
+#
+# It needs live network, so it is NOT part of the per-PR gate. Run it manually
+# from the Actions tab, or on a weekly schedule, to catch upstream data drift.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"   # Mondays 06:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Generate + audit reference targets
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: trimprot
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync dependencies
+        run: uv sync --python 3.12
+
+      - name: Generate outputs for reference targets
+        run: |
+          uv run trimprot --protein EGFR        # antibody-bound
+          uv run trimprot --accession P01375    # TNF-alpha
+          uv run trimprot --accession B6A8C7    # TARM1 (AlphaFold fallback)
+
+      - name: Audit chosen structures
+        run: uv run python validate_structures.py
