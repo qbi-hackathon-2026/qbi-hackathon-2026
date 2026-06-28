@@ -369,49 +369,77 @@ function renderSummary(s) {
 let selectedTarget = null;     // accession or name passed to /api/run
 let selectedHit = null;        // the chosen search candidate (for header genes/organism/length)
 
+function viewerMessage(stageId, msg) {
+  $(stageId).innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;padding:0 24px;text-align:center">${esc(msg)}</div>`;
+}
+
+// Load one structure into a 3Dmol panel; never throws. Returns the model or null
+// so one bad/empty structure can't abort the rest of the render.
+async function loadViewer(stageId, url, ext) {
+  try {
+    const text = await getText(url);
+    const v = newViewer(stageId);
+    const model = v.addModel(text, ext);
+    if (!model.selectedAtoms({}).length) {  // empty structure (no atoms)
+      viewerMessage(stageId, 'No structure to display.');
+      return { view: null, model: null };
+    }
+    return { view: v, model };
+  } catch (e) {
+    viewerMessage(stageId, 'Could not render this structure.');
+    return { view: null, model: null };
+  }
+}
+
 async function runPipeline() {
   if (!selectedTarget) return;
   $('results').style.display = 'block';
   setStatus(`Running pipeline for <strong>${esc(selectedTarget)}</strong> (UniProt → PDB ranking → trim → annotate)… <span style="opacity:.7">~10–30s</span>`);
+  leftView = rightView = null;
   try {
     const resp = await fetch(`${API_BASE}/api/run?target=${encodeURIComponent(selectedTarget)}`);
     const out = await resp.json();
     if (!resp.ok || out.error) throw new Error(out.error || ('HTTP ' + resp.status));
     const s = out.summary;
 
+    // Render the data-driven UI FIRST, so the summary/sidebar always populate
+    // even if a viewer fails to render.
     renderProteinHead(s, selectedHit);
     $('left-label').textContent = (s.structure && s.structure.chosen_pdb || '').toUpperCase();
-
-    // LEFT — full assembly, each chain a distinct color
-    const cif = await getText(API_BASE + out.files.original);
-    leftView = newViewer('stage-left');
-    const ml = leftView.addModel(cif, 'cif');
-    const lchains = [...new Set(ml.selectedAtoms({}).map(a => a.chain))].sort();
-    leftView.setStyle({}, { cartoon: { color: '0x8c97a8' } });
-    lchains.forEach((ch, i) => leftView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
-    addChainLabels(leftView, ml, lchains);
-    enableHover(leftView);
-    leftView.zoomTo(); leftView.render();
-
-    // RIGHT — trimmed target; hotspots green, patch orange
-    const pdb = await getText(API_BASE + out.files.trimmed);
-    rightView = newViewer('stage-right');
-    const mr = rightView.addModel(pdb, 'pdb');
-    const hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
-    _patch = (s.viewer && s.viewer.patch_auth_residues) || [];
-    const rchains = [...new Set(mr.selectedAtoms({}).map(a => a.chain))].sort();
-    rchains.forEach((ch, i) => rightView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
-    if (rchains.length > 1) addChainLabels(rightView, mr, rchains);
-    if (hot.length) rightView.setStyle({ resi: hot }, { cartoon: { color: '0x33cc33' }, stick: { color: '0x33cc33', radius: 0.2 } });
-    if (_patch.length) rightView.setStyle({ resi: _patch }, { cartoon: { color: '0xff7f0e' }, stick: { color: '0xff7f0e', radius: 0.25 }, sphere: { color: '0xff7f0e', scale: 0.3 } });
-    addDomainLabels(rightView, mr, (s.viewer && s.viewer.target_chain), (s.viewer && s.viewer.domains) || []);
-    enableHover(rightView);
-    rightView.zoomTo(); rightView.render();
-
     renderSummary(s);
     setStatus(`Done. Selected <strong>${esc((s.structure && s.structure.chosen_pdb || '').toUpperCase())}, chain ${esc((s.structure && s.structure.target_chain) || '?')}.</strong>`);
+
+    // LEFT — full assembly, each chain a distinct color (guarded)
+    const L = await loadViewer('stage-left', API_BASE + out.files.original, 'cif');
+    if (L.view) {
+      leftView = L.view;
+      const lchains = [...new Set(L.model.selectedAtoms({}).map(a => a.chain))].sort();
+      leftView.setStyle({}, { cartoon: { color: '0x8c97a8' } });
+      lchains.forEach((ch, i) => leftView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
+      addChainLabels(leftView, L.model, lchains);
+      enableHover(leftView);
+      leftView.zoomTo(); leftView.render();
+    }
+
+    // RIGHT — trimmed target; hotspots green, patch orange (guarded)
+    const hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
+    _patch = (s.viewer && s.viewer.patch_auth_residues) || [];
+    const R = await loadViewer('stage-right', API_BASE + out.files.trimmed, 'pdb');
+    if (R.view) {
+      rightView = R.view;
+      const rchains = [...new Set(R.model.selectedAtoms({}).map(a => a.chain))].sort();
+      rchains.forEach((ch, i) => rightView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
+      if (rchains.length > 1) addChainLabels(rightView, R.model, rchains);
+      if (hot.length) rightView.setStyle({ resi: hot }, { cartoon: { color: '0x33cc33' }, stick: { color: '0x33cc33', radius: 0.2 } });
+      if (_patch.length) rightView.setStyle({ resi: _patch }, { cartoon: { color: '0xff7f0e' }, stick: { color: '0xff7f0e', radius: 0.25 }, sphere: { color: '0xff7f0e', scale: 0.3 } });
+      addDomainLabels(rightView, R.model, (s.viewer && s.viewer.target_chain), (s.viewer && s.viewer.domains) || []);
+      enableHover(rightView);
+      rightView.zoomTo(); rightView.render();
+    }
   } catch (e) {
     setStatus('Error: ' + esc(e.message));
+    $('summary-body').className = 'placeholder';
+    $('summary-body').textContent = 'Could not run the pipeline: ' + e.message;
   }
 }
 

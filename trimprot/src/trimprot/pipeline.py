@@ -205,8 +205,17 @@ def run_pipeline(name: Optional[str] = None, *, accession: Optional[str] = None,
     else:
         keep_chains = [target_chain]
 
-    # 13. Trim the display structure (preserves auth numbering + icodes)
-    trim = trim_structure(loaded.display, keep_chains, ecd_auth,
+    # 13. Trim the display structure (preserves auth numbering + icodes).
+    # If the target has no extracellular domain (soluble/intracellular protein,
+    # or no TRANSMEM/TOPO_DOM annotation), there is nothing to trim TO — keep the
+    # full target chain(s) rather than emitting an empty structure.
+    trim_ranges = ecd_auth
+    if not trim_ranges:
+        warnings.append(
+            "no extracellular domain to trim to (no TRANSMEM/TOPO_DOM); "
+            "keeping the full target chain")
+        trim_ranges = [Range(-(10 ** 9), 10 ** 9)]  # keep all author residues
+    trim = trim_structure(loaded.display, keep_chains, trim_ranges,
                           target_chain=display_chains.target_chain)
     warnings.extend(trim.warnings)
 
