@@ -89,8 +89,8 @@
 
   /* ── Results region (hidden until a protein is chosen) ────────────────── */
   #results { display: none; }
-  main { max-width: var(--content-max); margin: 0 auto; display: flex; gap: 16px; padding: 8px 24px 32px; }
-  .col { flex: 1; min-width: 0; }
+  /* Vertical stack: header, full-width viewers, then details below. */
+  main { max-width: var(--content-max); margin: 0 auto; display: flex; flex-direction: column; padding: 8px 24px 32px; }
 
   /* ── Protein title block ──────────────────────────────────────────────── */
   .protein-head { margin-bottom: 14px; }
@@ -105,19 +105,31 @@
   .protein-head .plinks a:hover { border-color: var(--accent); color: var(--accent); }
   .protein-head .plinks a svg { width: 12px; height: 12px; opacity: .7; }
 
-  /* ── Viewers ──────────────────────────────────────────────────────────── */
-  .viewer-row { display: flex; gap: 12px; }
+  /* ── Warning banners (AlphaFold fallback, no-ECD, SIFTS, etc.) ─────────── */
+  #warnings { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  #warnings:empty { display: none; }
+  .banner { display: flex; align-items: flex-start; gap: 10px; border-radius: 8px; padding: 10px 14px; font-size: 13px; line-height: 1.45; border: 1px solid; }
+  .banner svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+  .banner-alphafold { background: #fff7ed; border-color: #fdba74; color: #92400e; font-weight: 500; }
+  .banner-warn { background: var(--chip); border-color: var(--border); color: var(--muted); }
+  html[data-theme="dark"] .banner-alphafold { background: #2d1a06; border-color: #f97316; color: #fdba74; }
+
+  /* ── Viewers (full width) ─────────────────────────────────────────────── */
+  .viewer-row { display: flex; gap: 12px; width: 100%; }
   .viewer-card { flex: 1; min-width: 0; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
   .viewer-card .title { padding: 8px 12px; font-size: 13px; color: var(--muted); border-bottom: 1px solid var(--border); display:flex; justify-content:space-between; align-items:center; gap: 8px; }
   .viewer-card .title b { color: var(--text); font-weight: 600; }
-  .viewer-card .stage { position: relative; width: 100%; height: 440px; background: var(--viewer-bg); }
+  .viewer-card .stage { position: relative; width: 100%; height: 560px; background: var(--viewer-bg); }
   .mini { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 5px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
   .mini:hover { border-color: var(--patch); color: var(--patch); }
-  .legend { display:flex; gap:16px; padding: 8px 12px; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
+  .legend { display:flex; gap:16px; padding: 10px 2px 0; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
   .legend span { display:inline-flex; align-items:center; gap:6px; }
   .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
 
-  /* ── Panels / sidebar ─────────────────────────────────────────────────── */
+  /* ── Details below the viewers ────────────────────────────────────────── */
+  .details { display: flex; gap: 16px; align-items: flex-start; }
+  .detail-main { flex: 1; min-width: 0; }
+  .detail-side { width: 360px; flex-shrink: 0; }
   .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-top: 12px; }
   .panel h2 { font-size: 14px; margin: 0 0 8px; color: var(--accent); }
   .kv { display:grid; grid-template-columns: 150px 1fr; gap: 5px 12px; font-size: 13px; }
@@ -128,15 +140,15 @@
   .pill.patch { border-color: var(--patch); color: var(--patch); cursor: pointer; }
   .pill.avoid { border-color: var(--avoid); color: var(--avoid); }
   .resgrid { max-height: 150px; overflow-y: auto; margin-top: 2px; }
-  #sidebar { width: 360px; flex-shrink: 0; }
   .dl a { color: var(--accent); text-decoration: none; font-size: 13px; }
   .dl a:hover { text-decoration: underline; }
   .placeholder { color: var(--muted); font-size: 13px; }
 
-  @media (max-width: 900px) {
-    main { flex-direction: column; }
-    #sidebar { width: 100%; }
+  @media (max-width: 980px) {
     .viewer-row { flex-direction: column; }
+    .viewer-card .stage { height: 440px; }
+    .details { flex-direction: column; }
+    .detail-side { width: 100%; }
   }
 </style>
 </head>
@@ -167,50 +179,48 @@
 
 <div id="results">
 <main>
-  <div class="col">
-    <div class="protein-head" id="protein-head"></div>
+  <div class="protein-head" id="protein-head"></div>
+  <div id="warnings"></div>
 
-    <div class="viewer-row">
-      <div class="viewer-card">
-        <div class="title"><span>Chosen RCSB assembly · <span style="color:var(--muted)">colored by chain</span></span><span id="left-label">—</span></div>
-        <div class="stage" id="stage-left"></div>
-      </div>
-      <div class="viewer-card">
-        <div class="title">
-          <span>Trimmed target · <b style="color:var(--hotspot)">hotspots</b> · <b style="color:var(--patch)">patch</b></span>
-          <button id="focus-patch" class="mini" type="button">focus patch</button>
-        </div>
-        <div class="stage" id="stage-right"></div>
-      </div>
+  <!-- Full-width viewers -->
+  <div class="viewer-row">
+    <div class="viewer-card">
+      <div class="title"><span>Chosen RCSB assembly · <span style="color:var(--muted)">colored by chain</span></span><span id="left-label">—</span></div>
+      <div class="stage" id="stage-left"></div>
     </div>
-    <div class="legend">
-      <span><span class="dot" style="background:#8c97a8"></span>Backbone / chains</span>
-      <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
-      <span><span class="dot" style="background:var(--patch)"></span>Epitope patch (→ BindCraft)</span>
+    <div class="viewer-card">
+      <div class="title">
+        <span>Trimmed target · <b style="color:var(--hotspot)">hotspots</b> · <b style="color:var(--patch)">patch</b></span>
+        <button id="focus-patch" class="mini" type="button">focus patch</button>
+      </div>
+      <div class="stage" id="stage-right"></div>
     </div>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:#8c97a8"></span>Backbone / chains</span>
+    <span><span class="dot" style="background:var(--hotspot)"></span>Candidate hotspot</span>
+    <span><span class="dot" style="background:var(--patch)"></span>Epitope patch (→ BindCraft)</span>
+  </div>
 
-    <div class="panel">
+  <!-- Details below the viewers -->
+  <div class="details">
+    <div class="panel detail-main">
       <h2>Structured summary</h2>
       <div id="summary-body" class="placeholder">—</div>
     </div>
-  </div>
-
-  <div id="sidebar">
-    <div class="panel">
-      <h2>Downloads</h2>
-      <div id="downloads" class="dl placeholder">—</div>
-    </div>
-    <div class="panel">
-      <h2>Candidate hotspots</h2>
-      <div id="hotspot-list" class="resgrid placeholder">—</div>
-    </div>
-    <div class="panel">
-      <h2>Epitope patch</h2>
-      <div id="patch-list" class="resgrid placeholder">—</div>
-    </div>
-    <div class="panel">
-      <h2>Glycosylation sites <span style="color:var(--muted);font-weight:400;font-size:12px">(UniProt numbering)</span></h2>
-      <div id="glyco-list" class="resgrid placeholder">—</div>
+    <div class="detail-side">
+      <div class="panel">
+        <h2>Downloads</h2>
+        <div id="downloads" class="dl placeholder">—</div>
+      </div>
+      <div class="panel">
+        <h2>Candidate hotspots</h2>
+        <div id="hotspot-list" class="resgrid placeholder">—</div>
+      </div>
+      <div class="panel">
+        <h2>Epitope patch</h2>
+        <div id="patch-list" class="resgrid placeholder">—</div>
+      </div>
     </div>
   </div>
 </main>
@@ -318,6 +328,31 @@ function renderProteinHead(s, sel) {
     </div>`;
 }
 
+// ── Warning banners (predicted/AlphaFold fallback + all engine warnings) ──
+const WARN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"></path><path d="M12 9v4M12 17h.01"></path></svg>';
+
+function renderWarnings(s) {
+  const box = $('warnings');
+  const st = s.structure || {};
+  const banners = [];
+
+  // Predicted-model fallback (AlphaFold / ESMFold / etc.) — prominent.
+  if (st.predicted) {
+    banners.push(`<div class="banner banner-alphafold">${WARN_ICON}<div>
+      <b>Predicted model used.</b> No experimental structure met the coverage/quality
+      bar, so a computational model${st.chosen_pdb ? ` (${esc(st.chosen_pdb.toUpperCase())})` : ''}
+      was selected. Treat coordinates and confidence accordingly.</div></div>`);
+  }
+
+  // Every other pipeline warning (no-ECD, SIFTS mismatches, orphan fragments…),
+  // skipping the predicted one already shown prominently above.
+  (s.warnings || [])
+    .filter(w => !/predicted model used/i.test(w))
+    .forEach(w => banners.push(`<div class="banner banner-warn">${WARN_ICON}<div>${esc(w)}</div></div>`));
+
+  box.innerHTML = banners.join('');
+}
+
 // ── Summary + sidebar ─────────────────────────────────────────────────────
 function kv(k, v) { return `<div class="k">${k}</div><div class="v">${v}</div>`; }
 
@@ -359,10 +394,6 @@ function renderSummary(s) {
   const patch = (s.viewer && s.viewer.patch_auth_residues) || [];
   $('patch-list').className = 'resgrid';
   $('patch-list').innerHTML = patch.length ? patch.map(n => `<span class="pill patch" onclick="focusPatch()" title="focus in viewer">${n}</span>`).join('') : 'None';
-
-  const glyco = s.glycosylation_sites_uniprot || [];
-  $('glyco-list').className = 'resgrid';
-  $('glyco-list').innerHTML = glyco.length ? glyco.map(n => `<span class="pill avoid" title="predicted glycosylation">N${n}</span>`).join('') : 'None predicted';
 }
 
 // ── Run pipeline + render both 3Dmol panels ──────────────────────────────
@@ -396,6 +427,7 @@ async function runPipeline() {
   $('results').style.display = 'block';
   setStatus(`Running pipeline for <strong>${esc(selectedTarget)}</strong> (UniProt → PDB ranking → trim → annotate)… <span style="opacity:.7">~10–30s</span>`);
   leftView = rightView = null;
+  $('warnings').innerHTML = '';
   try {
     const resp = await fetch(`${API_BASE}/api/run?target=${encodeURIComponent(selectedTarget)}`);
     const out = await resp.json();
@@ -405,6 +437,7 @@ async function runPipeline() {
     // Render the data-driven UI FIRST, so the summary/sidebar always populate
     // even if a viewer fails to render.
     renderProteinHead(s, selectedHit);
+    renderWarnings(s);
     $('left-label').textContent = (s.structure && s.structure.chosen_pdb || '').toUpperCase();
     renderSummary(s);
     setStatus(`Done. Selected <strong>${esc((s.structure && s.structure.chosen_pdb || '').toUpperCase())}, chain ${esc((s.structure && s.structure.target_chain) || '?')}.</strong>`);
