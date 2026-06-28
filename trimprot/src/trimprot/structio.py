@@ -107,14 +107,37 @@ class ChainClasses:
 
 
 def classify_chains(structure: gemmi.Structure, target_chain: str,
-                    identity_threshold: float = 0.9) -> ChainClasses:
-    """Split polymer chains into same-protein copies vs partners by sequence."""
+                    identity_threshold: float = 0.9,
+                    target_seq: str | None = None) -> ChainClasses:
+    """Split polymer chains into same-protein copies vs partners by sequence.
+
+    By default the target's sequence is looked up by chain name within
+    ``structure`` itself (matching the deposited asymmetric unit, where the
+    selected chain id is always present). Pass ``target_seq`` explicitly when
+    classifying a *different* structure than the one ``target_chain`` was chosen
+    from - e.g. an assembly-expanded copy, where biological-assembly generation
+    can legitimately rename or drop the originally-selected chain id entirely
+    (it may not exist under that name, or any name sharing its prefix). Without
+    this, the name-based lookup silently fails, target_seq stays empty, identity
+    against it is always 0.0, and every chain - including real homo-oligomer
+    copies of the target - gets misclassified as a "partner" (or no chain is
+    classified as the target's copy at all).
+    """
     model = structure[0]
     seqs: dict[str, str] = {}
     for ch in model:
         s = polymer_sequence(ch)
         if s:
             seqs[ch.name] = s
+
+    if target_seq:
+        tgt_seq = target_seq
+        same = [n for n, s in seqs.items() if _identity(tgt_seq, s) >= identity_threshold]
+        partners = [n for n in seqs if n not in same]
+        tgt_name = sorted(same)[0] if same else target_chain
+        return ChainClasses(target_chain=tgt_name,
+                            same_protein=sorted(same),
+                            partners=sorted(partners))
 
     # The target chain name may carry an assembly suffix; match by prefix too.
     tgt_name = target_chain

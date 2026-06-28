@@ -33,7 +33,10 @@ app = FastAPI(title="TrimProt")
 
 @app.get("/", response_class=HTMLResponse)
 def index() -> HTMLResponse:
-    return HTMLResponse(INDEX.read_text())
+    # Explicit encoding: Path.read_text() defaults to the platform locale codepage
+    # (cp1252 on Windows), which mis-decodes the file's UTF-8 punctuation (·, Å, →)
+    # into mojibake once HTMLResponse re-encodes it as UTF-8.
+    return HTMLResponse(INDEX.read_text(encoding="utf-8"))
 
 
 @app.get("/api/search")
