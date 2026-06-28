@@ -1,4 +1,4 @@
-"""Conversational assistant over the BindScout pipeline.
+"""Conversational assistant over the Bonsai pipeline.
 
 A thin agent loop: Claude orchestrates the SAME deterministic FastMCP tools the
 rest of the app uses (resolve_target, structures, prepare_target, ...). The model
@@ -25,7 +25,7 @@ MAX_TOOL_ROUNDS = 8          # cap the agent loop so a confused turn can't run a
 MAX_TOOL_RESULT_CHARS = 20000  # keep large summaries from blowing up the context
 
 SYSTEM = """\
-You are BindScout's assistant. BindScout is a deterministic pipeline that prepares
+You are Bonsai's assistant. Bonsai is a deterministic pipeline that prepares
 a design-ready protein target for de novo binder design: it resolves a UniProt
 entry, ranks experimental/AlphaFold structures, trims to the relevant
 extracellular domain, picks hotspot residues and an epitope patch, builds an
@@ -47,9 +47,9 @@ Key tools:
   (e.g. a larger membrane buffer, or a no-patch run).
 
 Honesty rules — this matters:
-- BindScout does NOT compute fold stability, folding free energy (ΔΔG),
+- Bonsai does NOT compute fold stability, folding free energy (ΔΔG),
   expressibility, or binding affinity. If asked whether an isolated domain "will
-  fold" or "stay stable", say plainly that BindScout doesn't model that, give
+  fold" or "stay stable", say plainly that Bonsai doesn't model that, give
   only what the structure data supports (e.g. whether the region is a discrete
   Pfam/topology domain), and suggest a dedicated tool if they need a real answer.
 - Distinguish what a tool returned (fact) from your own reasoning (clearly

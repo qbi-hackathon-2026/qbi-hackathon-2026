@@ -1,4 +1,4 @@
-"""Local web app for BindScout.
+"""Local web app for Bonsai.
 
 A thin FastAPI server that serves a single-page UI and runs the pipeline by
 calling the MCP server's `prepare_target` tool through an in-process FastMCP
@@ -120,7 +120,7 @@ from .uniprot import search_proteins       # noqa: E402
 _ACCESSION = re.compile(
     r"^([OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})$")
 
-app = FastAPI(title="BindScout")
+app = FastAPI(title="Bonsai")
 
 
 @app.get("/", response_class=HTMLResponse)
