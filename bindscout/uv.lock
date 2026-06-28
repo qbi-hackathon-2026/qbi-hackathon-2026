@@ -119,6 +119,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "fastmcp" },
     { name = "gemmi" },
+    { name = "python-dotenv" },
     { name = "requests" },
     { name = "uvicorn" },
 ]
@@ -135,6 +136,7 @@ requires-dist = [
     { name = "fastmcp", specifier = ">=2.0" },
     { name = "gemmi", specifier = ">=0.6.6" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "python-dotenv", specifier = ">=1.0" },
     { name = "requests", specifier = ">=2.31" },
     { name = "uvicorn", specifier = ">=0.49.0" },
 ]

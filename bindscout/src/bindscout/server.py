@@ -14,18 +14,28 @@ import os
 import re
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastmcp import Client
 from pydantic import BaseModel
 
-from .chat import chat as run_chat
-from .mcp_server import mcp
-from .uniprot import search_proteins
-
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUTS = ROOT / "outputs"
 INDEX = ROOT / "frontend" / "index.html"
+
+# Load each user's own ANTHROPIC_API_KEY (and any other secrets) from a local,
+# gitignored `bindscout/.env` — so nobody has to export it per-terminal and no
+# key is ever committed. Anchored to the package dir so it works regardless of
+# the working directory the server is launched from. Must run BEFORE chat.py
+# constructs the Anthropic client (which reads ANTHROPIC_API_KEY from the env).
+# An already-set environment variable wins (override=False), so an explicit
+# `export` still takes precedence over the file.
+load_dotenv(ROOT / ".env")
+
+from .chat import chat as run_chat        # noqa: E402  (import after load_dotenv)
+from .mcp_server import mcp                # noqa: E402
+from .uniprot import search_proteins       # noqa: E402
 
 # UniProt accession pattern (official regex). Anything else is treated as a name.
 _ACCESSION = re.compile(
