@@ -10,19 +10,32 @@ network calls, so this server is the only backend: input target -> run pipeline
 """
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastmcp import Client
-
-from .mcp_server import mcp
-from .uniprot import search_proteins
+from pydantic import BaseModel
 
 ROOT = Path(__file__).resolve().parents[2]
 OUTPUTS = ROOT / "outputs"
 INDEX = ROOT / "frontend" / "index.html"
+
+# Load each user's own ANTHROPIC_API_KEY (and any other secrets) from a local,
+# gitignored `bindscout/.env` — so nobody has to export it per-terminal and no
+# key is ever committed. Anchored to the package dir so it works regardless of
+# the working directory the server is launched from. Must run BEFORE chat.py
+# constructs the Anthropic client (which reads ANTHROPIC_API_KEY from the env).
+# An already-set environment variable wins (override=False), so an explicit
+# `export` still takes precedence over the file.
+load_dotenv(ROOT / ".env")
+
+from .chat import chat as run_chat        # noqa: E402  (import after load_dotenv)
+from .mcp_server import mcp                # noqa: E402
+from .uniprot import search_proteins       # noqa: E402
 
 # UniProt accession pattern (official regex). Anything else is treated as a name.
 _ACCESSION = re.compile(
@@ -83,6 +96,55 @@ async def run(target: str):
             "original": f"/files/{name}/original.cif",
             "trimmed": f"/files/{name}/trimmed.pdb",
         },
+    }
+
+
+class ChatTurn(BaseModel):
+    role: str       # "user" | "assistant"
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatTurn]
+    context: dict | None = None   # summary of the target loaded in the UI, if any
+
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest):
+    """Conversational assistant: Claude orchestrates the deterministic pipeline tools."""
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        return JSONResponse(
+            {"error": "The assistant is unavailable — set ANTHROPIC_API_KEY in the "
+                      "server environment and restart."}, status_code=503)
+
+    msgs = [{"role": m.role, "content": m.content} for m in req.messages]
+    if not msgs:
+        return JSONResponse({"error": "empty conversation"}, status_code=400)
+
+    try:
+        result = await run_chat(msgs, outdir=str(OUTPUTS), context=req.context)
+    except Exception as exc:
+        msg = re.sub(r"^Error calling tool '[^']*':\s*", "", str(exc))
+        return JSONResponse({"error": msg}, status_code=400)
+
+    # If the assistant re-ran the full pipeline, hand back file URLs + summary so
+    # the UI can refresh the 3D viewers in place.
+    files = None
+    summary = None
+    prepared = result.get("prepared")
+    if prepared:
+        summary = prepared.get("summary") or {}
+        name = summary.get("target")
+        if name:
+            files = {
+                "original": f"/files/{name}/original.cif",
+                "trimmed": f"/files/{name}/trimmed.pdb",
+            }
+    return {
+        "reply": result["reply"],
+        "tools_used": result["tools_used"],
+        "files": files,
+        "summary": summary,
     }
 
 
