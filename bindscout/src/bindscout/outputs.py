@@ -9,6 +9,8 @@ import csv
 import json
 from pathlib import Path
 
+import gemmi
+
 from .hotspots import Hotspot
 from .pipeline import PipelineResult
 from .structures import MIN_ECD_COVERAGE
@@ -17,6 +19,21 @@ from .viewer import build_viewer_html
 
 def _auth_label(num: int, icode: str) -> str:
     return f"{num}{icode}" if icode else f"{num}"
+
+
+def _trimmed_sequence(result: PipelineResult) -> str:
+    """One-letter sequence of the target chain in the trimmed structure."""
+    structure = result.trim.structure
+    chain_name = result.trim.target_chain
+    try:
+        chain = structure[0][chain_name]
+    except (IndexError, KeyError):
+        return ""
+    letters = []
+    for res in chain.get_polymer():
+        info = gemmi.find_tabulated_residue(res.name)
+        letters.append(info.one_letter_code if info.one_letter_code != "\0" else "X")
+    return "".join(letters)
 
 
 def format_hotspot_string(hotspots: list[Hotspot]) -> str:
@@ -163,6 +180,7 @@ def build_summary(result: PipelineResult) -> dict:
                  "kept_counts": result.trim.kept_counts},
         "warnings": result.warnings,
         "alphafold": result.alphafold.summary_fields() if result.alphafold else None,
+        "esmfold": result.esmfold.summary_fields() if result.esmfold else None,
     }
 
 
@@ -193,6 +211,20 @@ def emit_outputs(result: PipelineResult, base_dir: Path) -> Path:
     # trimmed target (PDB)
     trimmed_path = outdir / "trimmed.pdb"
     result.trim.structure.write_pdb(str(trimmed_path))
+
+    # esmfold_ecd.pdb (when available)
+    if result.esmfold is not None:
+        (outdir / "esmfold_ecd.pdb").write_bytes(result.esmfold.pdb_bytes)
+
+    # trimmed sequence (plain text + FASTA)
+    seq = _trimmed_sequence(result)
+    if seq:
+        (outdir / "trimmed_sequence.txt").write_text(seq + "\n", encoding="utf-8")
+        rec = result.record
+        header = (f">{rec.accession}|{rec.gene}|trimmed target chain "
+                  f"{result.trim.target_chain}")
+        fasta = header + "\n" + "\n".join(seq[i:i+60] for i in range(0, len(seq), 60)) + "\n"
+        (outdir / "trimmed_sequence.fasta").write_text(fasta, encoding="utf-8")
 
     # summary.json
     summary = build_summary(result)

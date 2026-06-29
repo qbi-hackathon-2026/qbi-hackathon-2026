@@ -142,6 +142,10 @@
   .mini { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 5px; padding: 2px 8px; font-size: 11px; cursor: pointer; }
   .mini:hover { border-color: var(--patch); color: var(--patch); }
   .mini.active { background: var(--patch); border-color: var(--patch); color: #fff; }
+  #esm-toggle-group { display: none; align-items: center; gap: 4px; }
+  #esm-notice { display: none; padding: 5px 12px; font-size: 11px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  @keyframes esm-banner { 0%,60% { opacity:1; } 100% { opacity:0; } }
+  #esm-notice.show { display: block; animation: esm-banner 2.5s ease forwards; }
   .legend { display:flex; gap:16px; padding: 10px 2px 0; font-size: 12px; color: var(--muted); flex-wrap:wrap; }
   .legend span { display:inline-flex; align-items:center; gap:6px; }
 
@@ -276,9 +280,16 @@
     </div>
     <div class="viewer-card">
       <div class="title">
-        <span>Trimmed target · <b style="color:var(--hotspot)">hotspots</b> · <b style="color:var(--patch)">patch</b></span>
-        <button id="focus-patch" class="mini" type="button">focus patch</button>
+        <span id="right-title">Trimmed target · <b style="color:var(--hotspot)">hotspots</b> · <b style="color:var(--patch)">patch</b></span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <span id="esm-toggle-group">
+            <button id="btn-alphafold" class="mini active" type="button">AlphaFold</button>
+            <button id="btn-esmfold"   class="mini"        type="button">ESMFold ECD</button>
+          </span>
+          <button id="focus-patch" class="mini" type="button">focus patch</button>
+        </span>
       </div>
+      <div id="esm-notice">Only the ECD was submitted for folding — residue numbering starts at 1</div>
       <div class="stage" id="stage-right"></div>
     </div>
   </div>
@@ -550,6 +561,11 @@ function renderSummary(s) {
   $('downloads').className = 'dl';
   $('downloads').innerHTML = `
     <div><a href="${API_BASE}/files/${t}/trimmed.pdb" download>Download trimmed target (PDB)</a></div>
+    <div style="margin-top:6px">
+      <a href="${API_BASE}/files/${t}/trimmed_sequence.fasta" download>Trimmed sequence (FASTA)</a>
+      <span style="color:var(--border)"> · </span>
+      <a href="${API_BASE}/files/${t}/trimmed_sequence.txt" download style="color:var(--muted);font-size:12px">plain text</a>
+    </div>
     <div style="margin-top:6px"><a href="${API_BASE}/files/${t}/original.cif" download style="color:var(--muted);font-size:12px">original assembly (CIF)</a></div>
     <div style="margin-top:6px"><a href="${API_BASE}/files/${t}/summary.json" target="_blank" style="color:var(--muted);font-size:12px">summary.json</a> ·
       <a href="${API_BASE}/files/${t}/hotspots.csv" target="_blank" style="color:var(--muted);font-size:12px">hotspots.csv</a></div>`;
@@ -567,6 +583,14 @@ function renderSummary(s) {
 // ── Run pipeline + render both 3Dmol panels ──────────────────────────────
 let selectedTarget = null;     // accession or name passed to /api/run
 let selectedHit = null;        // the chosen search candidate (for header genes/organism/length)
+
+function showEsmNotice() {
+  const el = $('esm-notice');
+  el.classList.remove('show');
+  void el.offsetWidth; // force reflow to restart animation
+  el.classList.add('show');
+  el.addEventListener('animationend', () => { el.classList.remove('show'); el.style.display = 'none'; }, { once: true });
+}
 
 function viewerMessage(stageId, msg) {
   $(stageId).innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px;padding:0 24px;text-align:center">${esc(msg)}</div>`;
@@ -635,6 +659,50 @@ function renderProtter(s) {
   img.src = `${API_BASE}/api/protter/${encodeURIComponent(acc)}`;
 }
 
+// Load and style the right panel with a given PDB URL.
+// isEsm=true: plain chain colouring only (no hotspot/patch overlay, no domain labels).
+// Map UniProt residue numbers to 1-based positions in the concatenated ECD sequence.
+// AlphaFold auth numbering == UniProt numbering, so this works directly.
+function ecdPositions(unpResidues, ecdRanges) {
+  const result = [];
+  let offset = 1;
+  for (const [start, end] of ecdRanges) {
+    for (const unp of unpResidues) {
+      if (unp >= start && unp <= end) result.push(offset + (unp - start));
+    }
+    offset += (end - start + 1);
+  }
+  return result;
+}
+
+async function loadRightPanel(url, s, isEsm) {
+  const hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
+  const patch = (s.viewer && s.viewer.patch_auth_residues) || [];
+  const ecdRanges = (s.topology && s.topology.ecd_ranges_uniprot) || [];
+
+  let displayHot = hot, displayPatch = patch;
+  if (isEsm && ecdRanges.length) {
+    displayHot   = ecdPositions(hot,   ecdRanges);
+    displayPatch = ecdPositions(patch, ecdRanges);
+  }
+  _patch = isEsm ? displayPatch : patch;
+
+  const R = await loadViewer('stage-right', API_BASE + url, 'pdb');
+  if (R.view) {
+    rightView = R.view;
+    const rchains = [...new Set(R.model.selectedAtoms({}).map(a => a.chain))].sort();
+    rchains.forEach((ch, i) => rightView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
+    if (displayHot.length)   rightView.setStyle({ resi: displayHot },   { cartoon: { color: '0x33cc33' }, stick: { color: '0x33cc33', radius: 0.2 } });
+    if (displayPatch.length) rightView.setStyle({ resi: displayPatch }, { cartoon: { color: '0xff7f0e' }, stick: { color: '0xff7f0e', radius: 0.25 }, sphere: { color: '0xff7f0e', scale: 0.3 } });
+    if (!isEsm) {
+      if (rchains.length > 1) addChainLabels(rightView, R.model, rchains);
+      addDomainLabels(rightView, R.model, (s.viewer && s.viewer.target_chain), (s.viewer && s.viewer.domains) || []);
+    }
+    enableHover(rightView);
+    rightView.zoomTo(); rightView.render();
+  }
+}
+
 // Render a completed pipeline run (summary + file URLs) into the sidebar and the
 // two 3D viewers. Shared by the search flow (runPipeline) and the chat assistant.
 async function renderRun(s, files, sel) {
@@ -648,6 +716,31 @@ async function renderRun(s, files, sel) {
   renderSummary(s);
   renderProtter(s);
 
+  // AlphaFold / ESMFold toggle — only visible when ESMFold ECD is available
+  const hasEsm = !!files.esmfold_ecd;
+  $('esm-toggle-group').style.display = hasEsm ? 'flex' : 'none';
+    $('right-title').innerHTML = 'Trimmed target · <b style="color:var(--hotspot)">hotspots</b> · <b style="color:var(--patch)">patch</b>';
+  $('btn-alphafold').classList.add('active');
+  $('btn-esmfold').classList.remove('active');
+
+  if (hasEsm) {
+    $('btn-alphafold').onclick = async () => {
+      $('btn-alphafold').classList.add('active');
+      $('btn-esmfold').classList.remove('active');
+      $('right-title').innerHTML = 'Trimmed target · <b style="color:var(--hotspot)">hotspots</b> · <b style="color:var(--patch)">patch</b>';
+            rightView = null; _patch = [];
+      await loadRightPanel(files.trimmed, s, false);
+    };
+    $('btn-esmfold').onclick = async () => {
+      $('btn-esmfold').classList.add('active');
+      $('btn-alphafold').classList.remove('active');
+      $('right-title').innerHTML = 'ESMFold prediction · <b>ECD only</b>';
+      showEsmNotice();
+      rightView = null; _patch = [];
+      await loadRightPanel(files.esmfold_ecd, s, true);
+    };
+  }
+
   // LEFT — full assembly, each chain a distinct color (guarded)
   const L = await loadViewer('stage-left', API_BASE + files.original, 'cif');
   if (L.view) {
@@ -660,21 +753,8 @@ async function renderRun(s, files, sel) {
     leftView.zoomTo(); leftView.render();
   }
 
-  // RIGHT — trimmed target; hotspots green, patch orange (guarded)
-  const hot = (s.viewer && s.viewer.hotspot_auth_residues) || [];
-  _patch = (s.viewer && s.viewer.patch_auth_residues) || [];
-  const R = await loadViewer('stage-right', API_BASE + files.trimmed, 'pdb');
-  if (R.view) {
-    rightView = R.view;
-    const rchains = [...new Set(R.model.selectedAtoms({}).map(a => a.chain))].sort();
-    rchains.forEach((ch, i) => rightView.setStyle({ chain: ch }, { cartoon: { color: PALETTE[i % PALETTE.length] } }));
-    if (rchains.length > 1) addChainLabels(rightView, R.model, rchains);
-    if (hot.length) rightView.setStyle({ resi: hot }, { cartoon: { color: '0x33cc33' }, stick: { color: '0x33cc33', radius: 0.2 } });
-    if (_patch.length) rightView.setStyle({ resi: _patch }, { cartoon: { color: '0xff7f0e' }, stick: { color: '0xff7f0e', radius: 0.25 }, sphere: { color: '0xff7f0e', scale: 0.3 } });
-    addDomainLabels(rightView, R.model, (s.viewer && s.viewer.target_chain), (s.viewer && s.viewer.domains) || []);
-    enableHover(rightView);
-    rightView.zoomTo(); rightView.render();
-  }
+  // RIGHT — trimmed target by default
+  await loadRightPanel(files.trimmed, s, false);
 }
 
 async function runPipeline() {

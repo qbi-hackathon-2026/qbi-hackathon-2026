@@ -11,6 +11,7 @@ from typing import Optional
 import gemmi
 
 from .alphafold import AlphaFoldModel, PLDDT_LOW, PLDDT_UNOBS, fetch_alphafold
+from .esmfold import ESMFoldModel, fetch_esmfold
 from .avoid import AvoidSet, build_avoid_set
 from .glyco import predict_glycosylation
 from .hotspots import Hotspot, Removal, filter_hotspots, select_patch
@@ -65,6 +66,7 @@ class PipelineResult:
     membrane_buffer: int
     warnings: list[str] = field(default_factory=list)
     alphafold: Optional[AlphaFoldModel] = None   # set when the AF fallback fired
+    esmfold: Optional[ESMFoldModel] = None        # set when ECD ≤ 400 aa and AF fired
 
 
 def _ecd_to_auth(ecd_ranges: list[Range], mapping: SiftsMapping,
@@ -133,11 +135,18 @@ def run_pipeline(name: Optional[str] = None, *, accession: Optional[str] = None,
         choice = None
         need_alphafold = True
 
+    esmfold: Optional[ESMFoldModel] = None
     if need_alphafold:
         alphafold = fetch_alphafold(rec.accession, ecd_ranges)
         choice = alphafold.choice
         loaded = alphafold.loaded
         warnings.extend(alphafold.warnings)
+        # Also fold the ECD via ESMFold (ECD-only; soft failure)
+        try:
+            esmfold = fetch_esmfold(rec.accession, rec.sequence, ecd_ranges)
+            warnings.extend(esmfold.warnings)
+        except Exception as exc:
+            warnings.append(f"ESMFold ECD prediction skipped: {exc}")
     else:
         # 5. Load (assembly-aware). Analysis uses the AU; display/trim the assembly.
         loaded = load_structure(choice.chosen.pdb_id, assembly=assembly)
@@ -283,4 +292,5 @@ def run_pipeline(name: Optional[str] = None, *, accession: Optional[str] = None,
         hotspots=hotspots, patch=patch, domains=domains, removals=removals, trim=trim,
         assembly=assembly, membrane_buffer=membrane_buffer, warnings=warnings,
         alphafold=alphafold,
+        esmfold=esmfold,
     )

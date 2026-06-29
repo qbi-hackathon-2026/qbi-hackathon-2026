@@ -169,13 +169,15 @@ async def run(target: str):
     data = result.data or {}
     summary = data.get("summary", {})
     name = summary.get("target") or target
-    return {
-        "summary": summary,
-        "files": {
-            "original": f"/files/{name}/original.cif",
-            "trimmed": f"/files/{name}/trimmed.pdb",
-        },
+    files: dict = {
+        "original": f"/files/{name}/original.cif",
+        "trimmed": f"/files/{name}/trimmed.pdb",
+        "sequence_txt": f"/files/{name}/trimmed_sequence.txt",
+        "sequence_fasta": f"/files/{name}/trimmed_sequence.fasta",
     }
+    if summary.get("esmfold"):
+        files["esmfold_ecd"] = f"/files/{name}/esmfold_ecd.pdb"
+    return {"summary": summary, "files": files}
 
 
 @app.get("/api/protter/{accession}")
